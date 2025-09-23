@@ -98,6 +98,7 @@ export default function ClaudeLayoutChat() {
 
   const saveToStorage = (key: string, data: any) => {
     try {
+      if (typeof window === 'undefined') return;
       localStorage.setItem(getStorageKey(key), JSON.stringify(data));
     } catch (error) {
       console.error('Failed to save to localStorage:', error);
@@ -106,6 +107,7 @@ export default function ClaudeLayoutChat() {
 
   const loadFromStorage = (key: string) => {
     try {
+      if (typeof window === 'undefined') return null;
       const data = localStorage.getItem(getStorageKey(key));
       return data ? JSON.parse(data) : null;
     } catch (error) {
@@ -116,27 +118,33 @@ export default function ClaudeLayoutChat() {
 
   // Authentication functions
   const handleLogin = (email: string) => {
-    setUserEmail(email);
-    setIsAuthenticated(true);
-    setShowAuthModal(false);
-    
-    // Migrate guest data to user data
-    const guestSessions = loadFromStorage('sessions') || [];
-    const guestStarred = loadFromStorage('starredSessions') || [];
-    
-    if (guestSessions.length > 0) {
-      setSessions(guestSessions);
-      saveToStorage('sessions', guestSessions);
+    try {
+      setUserEmail(email);
+      setIsAuthenticated(true);
+      setShowAuthModal(false);
+      
+      // Migrate guest data to user data
+      const guestSessions = loadFromStorage('sessions') || [];
+      const guestStarred = loadFromStorage('starredSessions') || [];
+      
+      if (guestSessions.length > 0) {
+        setSessions(guestSessions);
+        saveToStorage('sessions', guestSessions);
+      }
+      
+      if (guestStarred.length > 0) {
+        setStarredSessions(guestStarred);
+        saveToStorage('starredSessions', guestStarred);
+      }
+      
+      // Clear guest data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('chris-ai-guest-sessions');
+        localStorage.removeItem('chris-ai-guest-starredSessions');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
     }
-    
-    if (guestStarred.length > 0) {
-      setStarredSessions(guestStarred);
-      saveToStorage('starredSessions', guestStarred);
-    }
-    
-    // Clear guest data
-    localStorage.removeItem('chris-ai-guest-sessions');
-    localStorage.removeItem('chris-ai-guest-starredSessions');
   };
 
   const handleLogout = () => {
@@ -155,46 +163,62 @@ export default function ClaudeLayoutChat() {
 
   // Load data from localStorage on mount
   useEffect(() => {
-    const savedSessions = loadFromStorage('sessions');
-    const savedStarred = loadFromStorage('starredSessions');
-    const savedCurrentSession = loadFromStorage('currentSessionId');
-    
-    if (savedSessions) {
-      setSessions(savedSessions);
-    }
-    
-    if (savedStarred) {
-      setStarredSessions(savedStarred);
-    }
-    
-    if (savedCurrentSession) {
-      setCurrentSessionId(savedCurrentSession);
-      const session = savedSessions?.find((s: ChatSession) => s.id === savedCurrentSession);
-      if (session && session.messages.length > 0) {
-        setMessages(session.messages);
-        setShowWelcome(false);
+    try {
+      const savedSessions = loadFromStorage('sessions');
+      const savedStarred = loadFromStorage('starredSessions');
+      const savedCurrentSession = loadFromStorage('currentSessionId');
+      
+      if (savedSessions && Array.isArray(savedSessions)) {
+        setSessions(savedSessions);
       }
+      
+      if (savedStarred && Array.isArray(savedStarred)) {
+        setStarredSessions(savedStarred);
+      }
+      
+      if (savedCurrentSession) {
+        setCurrentSessionId(savedCurrentSession);
+        const session = savedSessions?.find((s: ChatSession) => s.id === savedCurrentSession);
+        if (session && session.messages && Array.isArray(session.messages) && session.messages.length > 0) {
+          setMessages(session.messages);
+          setShowWelcome(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading data from storage:', error);
     }
   }, [userEmail]); // Re-run when user changes
 
   // Save sessions to localStorage whenever they change
   useEffect(() => {
-    if (sessions.length > 0) {
-      saveToStorage('sessions', sessions);
+    try {
+      if (sessions.length > 0) {
+        saveToStorage('sessions', sessions);
+      }
+    } catch (error) {
+      console.error('Error saving sessions:', error);
     }
   }, [sessions, userEmail]);
 
   // Save starred sessions to localStorage whenever they change
   useEffect(() => {
-    if (starredSessions.length > 0) {
-      saveToStorage('starredSessions', starredSessions);
+    try {
+      if (starredSessions.length > 0) {
+        saveToStorage('starredSessions', starredSessions);
+      }
+    } catch (error) {
+      console.error('Error saving starred sessions:', error);
     }
   }, [starredSessions, userEmail]);
 
   // Save current session ID to localStorage whenever it changes
   useEffect(() => {
-    if (currentSessionId) {
-      saveToStorage('currentSessionId', currentSessionId);
+    try {
+      if (currentSessionId) {
+        saveToStorage('currentSessionId', currentSessionId);
+      }
+    } catch (error) {
+      console.error('Error saving current session:', error);
     }
   }, [currentSessionId, userEmail]);
 
