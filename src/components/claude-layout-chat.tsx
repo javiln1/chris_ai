@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 // Custom chat implementation - no need for external useChat
@@ -13,7 +13,6 @@ import ProfilePage from './profile-page';
 import HelpSupportPage from './help-support-page';
 import ToggleSwitch from './toggle-switch';
 import ConnectorsModal from './connectors-modal';
-import AuthModal from './auth-modal';
 
 interface Message {
   id: string;
@@ -72,11 +71,6 @@ export default function ClaudeLayoutChat() {
   const [showProfilePage, setShowProfilePage] = useState(false);
   const [showHelpSupportPage, setShowHelpSupportPage] = useState(false);
   
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
   const connectorsMenuRef = useRef<HTMLDivElement>(null);
@@ -91,146 +85,10 @@ export default function ClaudeLayoutChat() {
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
 
-  // Local storage functions
-  const getStorageKey = (key: string) => {
-    return userEmail ? `chris-ai-${userEmail}-${key}` : `chris-ai-guest-${key}`;
-  };
-
-  const saveToStorage = (key: string, data: any) => {
-    try {
-      if (typeof window === 'undefined') return;
-      localStorage.setItem(getStorageKey(key), JSON.stringify(data));
-    } catch (error) {
-      console.error('Failed to save to localStorage:', error);
-    }
-  };
-
-  const loadFromStorage = (key: string) => {
-    try {
-      if (typeof window === 'undefined') return null;
-      const data = localStorage.getItem(getStorageKey(key));
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      console.error('Failed to load from localStorage:', error);
-      return null;
-    }
-  };
-
-  // Authentication functions
-  const handleLogin = (email: string) => {
-    try {
-      setUserEmail(email);
-      setIsAuthenticated(true);
-      setShowAuthModal(false);
-      
-      // Migrate guest data to user data
-      const guestSessions = loadFromStorage('sessions') || [];
-      const guestStarred = loadFromStorage('starredSessions') || [];
-      
-      if (guestSessions.length > 0) {
-        setSessions(guestSessions);
-        saveToStorage('sessions', guestSessions);
-      }
-      
-      if (guestStarred.length > 0) {
-        setStarredSessions(guestStarred);
-        saveToStorage('starredSessions', guestStarred);
-      }
-      
-      // Clear guest data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('chris-ai-guest-sessions');
-        localStorage.removeItem('chris-ai-guest-starredSessions');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-    }
-  };
-
-  const handleLogout = () => {
-    setUserEmail(null);
-    setIsAuthenticated(false);
-    setSessions([]);
-    setStarredSessions([]);
-    setCurrentSessionId(null);
-    setShowWelcome(true);
-  };
-
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Load data from localStorage on mount
-  useEffect(() => {
-    try {
-      if (typeof window === 'undefined') return;
-      
-      // Simple localStorage access without userEmail dependency
-      const savedSessions = localStorage.getItem('chris-ai-sessions');
-      const savedStarred = localStorage.getItem('chris-ai-starredSessions');
-      const savedCurrentSession = localStorage.getItem('chris-ai-currentSessionId');
-      
-      if (savedSessions) {
-        const sessions = JSON.parse(savedSessions);
-        if (Array.isArray(sessions)) {
-          setSessions(sessions);
-        }
-      }
-      
-      if (savedStarred) {
-        const starred = JSON.parse(savedStarred);
-        if (Array.isArray(starred)) {
-          setStarredSessions(starred);
-        }
-      }
-      
-      if (savedCurrentSession) {
-        setCurrentSessionId(savedCurrentSession);
-        const sessions = savedSessions ? JSON.parse(savedSessions) : [];
-        const session = sessions.find((s: ChatSession) => s.id === savedCurrentSession);
-        if (session && session.messages && Array.isArray(session.messages) && session.messages.length > 0) {
-          setMessages(session.messages);
-          setShowWelcome(false);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading data from storage:', error);
-    }
-  }, []); // Remove userEmail dependency
-
-  // Save sessions to localStorage whenever they change
-  useEffect(() => {
-    try {
-      if (sessions.length > 0 && typeof window !== 'undefined') {
-        localStorage.setItem('chris-ai-sessions', JSON.stringify(sessions));
-      }
-    } catch (error) {
-      console.error('Error saving sessions:', error);
-    }
-  }, [sessions]);
-
-  // Save starred sessions to localStorage whenever they change
-  useEffect(() => {
-    try {
-      if (starredSessions.length > 0 && typeof window !== 'undefined') {
-        localStorage.setItem('chris-ai-starredSessions', JSON.stringify(starredSessions));
-      }
-    } catch (error) {
-      console.error('Error saving starred sessions:', error);
-    }
-  }, [starredSessions]);
-
-  // Save current session ID to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      if (currentSessionId && typeof window !== 'undefined') {
-        localStorage.setItem('chris-ai-currentSessionId', currentSessionId);
-      }
-    } catch (error) {
-      console.error('Error saving current session:', error);
-    }
-  }, [currentSessionId]);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -1018,17 +876,8 @@ export default function ClaudeLayoutChat() {
             </motion.button>
           </div>
 
-          {/* Right Side - Login Button and Agent Dropdown */}
-          <div className="flex items-center space-x-3">
-            {/* Login/User Button - Temporarily disabled for debugging */}
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-4 py-2 text-sm bg-lime-500 hover:bg-lime-400 text-black rounded-lg font-medium transition-colors"
-            >
-              Sign In
-            </button>
-            
-            <div className="relative" ref={dropdownRef}>
+          {/* Right Side - Agent Dropdown */}
+          <div className="relative" ref={dropdownRef}>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -1085,7 +934,6 @@ export default function ClaudeLayoutChat() {
                 </motion.div>
               )}
             </AnimatePresence>
-            </div>
           </div>
         </header>
 
@@ -1750,13 +1598,6 @@ export default function ClaudeLayoutChat() {
         <ConnectorsModal 
           isOpen={showConnectorsModal} 
           onClose={() => setShowConnectorsModal(false)} 
-        />
-
-        {/* Authentication Modal */}
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onLogin={handleLogin}
         />
       </div>
     );
