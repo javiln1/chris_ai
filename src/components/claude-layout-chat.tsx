@@ -1477,6 +1477,39 @@ export default function ClaudeLayoutChat() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
                       </motion.button>
+
+                      {/* File Menu */}
+                      <AnimatePresence>
+                        {isFileMenuOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="absolute bottom-full left-0 mb-2 bg-custom-dark-secondary border border-border rounded-lg shadow-lg p-2 space-y-1 w-48"
+                          >
+                            <div className="flex items-center gap-3 p-2 hover:bg-custom-dark-tertiary rounded cursor-pointer" onClick={() => handleFileMenuAction('local')}>
+                              <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <span className="text-sm text-text">Add from local files</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 p-2 hover:bg-custom-dark-tertiary rounded cursor-pointer" onClick={() => handleFileMenuAction('drive')}>
+                              <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                              </svg>
+                              <span className="text-sm text-text">Add from Google Drive</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 p-2 hover:bg-custom-dark-tertiary rounded cursor-pointer" onClick={() => handleFileMenuAction('screenshot')}>
+                              <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                              </svg>
+                              <span className="text-sm text-text">Upload screenshot</span>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {/* Connectors Button */}
