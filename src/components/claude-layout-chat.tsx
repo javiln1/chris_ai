@@ -1184,10 +1184,33 @@ export default function ClaudeLayoutChat() {
                               )}
                             </motion.button>
                           </div>
+                      </div>
+                      
+                      {/* Display uploaded files before sending */}
+                      {uploadedFiles.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {uploadedFiles.map(file => (
+                            <div key={file.id} className="flex items-center gap-2 p-2 bg-custom-dark-secondary rounded-lg">
+                              <span className="text-sm">{getFileIcon(file.type)}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate text-text">{file.name}</div>
+                                <div className="text-xs opacity-75 text-text-secondary">{formatFileSize(file.size)}</div>
+                              </div>
+                              <button
+                                onClick={() => removeFile(file.id)}
+                                className="text-text-secondary hover:text-text transition-colors p-1"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                        
-                        {/* Send Button - Now inline with the input */}
-                        <motion.button
+                      )}
+                      
+                      {/* Send Button - Now inline with the input */}
+                      <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleSendMessage(input)}
@@ -1507,6 +1530,29 @@ export default function ClaudeLayoutChat() {
                         </motion.button>
                       </div>
                     </div>
+                    
+                    {/* Display uploaded files before sending - Chat State */}
+                    {uploadedFiles.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {uploadedFiles.map(file => (
+                          <div key={file.id} className="flex items-center gap-2 p-2 bg-custom-dark-secondary rounded-lg">
+                            <span className="text-sm">{getFileIcon(file.type)}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium truncate text-text">{file.name}</div>
+                              <div className="text-xs opacity-75 text-text-secondary">{formatFileSize(file.size)}</div>
+                            </div>
+                            <button
+                              onClick={() => removeFile(file.id)}
+                              className="text-text-secondary hover:text-text transition-colors p-1"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     
                     <motion.button
                       whileHover={{ scale: 1.05 }}
