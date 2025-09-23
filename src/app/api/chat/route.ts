@@ -59,8 +59,30 @@ export async function POST(req: Request) {
       maxOutputTokens: 1000, // AI SDK v5 uses maxOutputTokens instead of maxTokens
     });
 
-    console.log('streamText successful, returning response');
-    return result.toDataStreamResponse();
+    console.log('streamText result:', {
+      type: typeof result,
+      methods: Object.getOwnPropertyNames(result),
+      prototype: Object.getOwnPropertyNames(Object.getPrototypeOf(result))
+    });
+    
+    // Try different response methods for AI SDK v5
+    if (typeof result.toDataStreamResponse === 'function') {
+      console.log('Using toDataStreamResponse');
+      return result.toDataStreamResponse();
+    } else if (typeof result.toResponse === 'function') {
+      console.log('Using toResponse');
+      return result.toResponse();
+    } else if (typeof result.toTextStreamResponse === 'function') {
+      console.log('Using toTextStreamResponse');
+      return result.toTextStreamResponse();
+    } else {
+      console.log('Using manual response creation');
+      return new Response(result.toDataStream(), {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+      });
+    }
   } catch (error) {
     console.error('API Error Details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
