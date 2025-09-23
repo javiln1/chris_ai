@@ -56,7 +56,7 @@ export async function POST(req: Request) {
       model,
       messages,
       system: agent.systemPrompt,
-      maxTokens: 1000, // Reduced to avoid token limits
+      maxOutputTokens: 1000, // AI SDK v5 uses maxOutputTokens instead of maxTokens
     });
 
     console.log('streamText successful, returning response');
