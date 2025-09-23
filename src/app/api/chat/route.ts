@@ -1,4 +1,4 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { getAgentById } from '@/lib/agents';
 
@@ -29,11 +29,6 @@ export async function POST(req: Request) {
       console.error('OpenAI API key not found in environment variables');
       throw new Error('OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables.');
     }
-
-    // Create OpenAI client with API key
-    const openai = createOpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
 
     // Select model based on agentId
     switch (agentId) {
