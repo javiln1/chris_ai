@@ -13,6 +13,7 @@ import ProfilePage from './profile-page';
 import HelpSupportPage from './help-support-page';
 import ToggleSwitch from './toggle-switch';
 import ConnectorsModal from './connectors-modal';
+import AuthModal from './auth-modal';
 
 interface Message {
   id: string;
@@ -71,6 +72,11 @@ export default function ClaudeLayoutChat() {
   const [showProfilePage, setShowProfilePage] = useState(false);
   const [showHelpSupportPage, setShowHelpSupportPage] = useState(false);
   
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
   const connectorsMenuRef = useRef<HTMLDivElement>(null);
@@ -85,10 +91,112 @@ export default function ClaudeLayoutChat() {
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
 
+  // Local storage functions
+  const getStorageKey = (key: string) => {
+    return userEmail ? `chris-ai-${userEmail}-${key}` : `chris-ai-guest-${key}`;
+  };
+
+  const saveToStorage = (key: string, data: any) => {
+    try {
+      localStorage.setItem(getStorageKey(key), JSON.stringify(data));
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
+    }
+  };
+
+  const loadFromStorage = (key: string) => {
+    try {
+      const data = localStorage.getItem(getStorageKey(key));
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('Failed to load from localStorage:', error);
+      return null;
+    }
+  };
+
+  // Authentication functions
+  const handleLogin = (email: string) => {
+    setUserEmail(email);
+    setIsAuthenticated(true);
+    setShowAuthModal(false);
+    
+    // Migrate guest data to user data
+    const guestSessions = loadFromStorage('sessions') || [];
+    const guestStarred = loadFromStorage('starredSessions') || [];
+    
+    if (guestSessions.length > 0) {
+      setSessions(guestSessions);
+      saveToStorage('sessions', guestSessions);
+    }
+    
+    if (guestStarred.length > 0) {
+      setStarredSessions(guestStarred);
+      saveToStorage('starredSessions', guestStarred);
+    }
+    
+    // Clear guest data
+    localStorage.removeItem('chris-ai-guest-sessions');
+    localStorage.removeItem('chris-ai-guest-starredSessions');
+  };
+
+  const handleLogout = () => {
+    setUserEmail(null);
+    setIsAuthenticated(false);
+    setSessions([]);
+    setStarredSessions([]);
+    setCurrentSessionId(null);
+    setShowWelcome(true);
+  };
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load data from localStorage on mount
+  useEffect(() => {
+    const savedSessions = loadFromStorage('sessions');
+    const savedStarred = loadFromStorage('starredSessions');
+    const savedCurrentSession = loadFromStorage('currentSessionId');
+    
+    if (savedSessions) {
+      setSessions(savedSessions);
+    }
+    
+    if (savedStarred) {
+      setStarredSessions(savedStarred);
+    }
+    
+    if (savedCurrentSession) {
+      setCurrentSessionId(savedCurrentSession);
+      const session = savedSessions?.find((s: ChatSession) => s.id === savedCurrentSession);
+      if (session && session.messages.length > 0) {
+        setMessages(session.messages);
+        setShowWelcome(false);
+      }
+    }
+  }, [userEmail]); // Re-run when user changes
+
+  // Save sessions to localStorage whenever they change
+  useEffect(() => {
+    if (sessions.length > 0) {
+      saveToStorage('sessions', sessions);
+    }
+  }, [sessions, userEmail]);
+
+  // Save starred sessions to localStorage whenever they change
+  useEffect(() => {
+    if (starredSessions.length > 0) {
+      saveToStorage('starredSessions', starredSessions);
+    }
+  }, [starredSessions, userEmail]);
+
+  // Save current session ID to localStorage whenever it changes
+  useEffect(() => {
+    if (currentSessionId) {
+      saveToStorage('currentSessionId', currentSessionId);
+    }
+  }, [currentSessionId, userEmail]);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -876,8 +984,29 @@ export default function ClaudeLayoutChat() {
             </motion.button>
           </div>
 
-          {/* Right Side - Agent Dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          {/* Right Side - Login Button and Agent Dropdown */}
+          <div className="flex items-center space-x-3">
+            {/* Login/User Button */}
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-text-secondary">{userEmail}</span>
+                <button
+                  onClick={handleLogout}
+                  className="px-3 py-2 text-sm bg-custom-dark-tertiary hover:bg-custom-dark rounded-lg text-text-secondary hover:text-text transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="px-4 py-2 text-sm bg-lime-500 hover:bg-lime-400 text-black rounded-lg font-medium transition-colors"
+              >
+                Sign In
+              </button>
+            )}
+            
+            <div className="relative" ref={dropdownRef}>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -934,6 +1063,7 @@ export default function ClaudeLayoutChat() {
                 </motion.div>
               )}
             </AnimatePresence>
+            </div>
           </div>
         </header>
 
@@ -1598,6 +1728,13 @@ export default function ClaudeLayoutChat() {
         <ConnectorsModal 
           isOpen={showConnectorsModal} 
           onClose={() => setShowConnectorsModal(false)} 
+        />
+
+        {/* Authentication Modal */}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onLogin={handleLogin}
         />
       </div>
     );
