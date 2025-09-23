@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 // Custom chat implementation - no need for external useChat
@@ -164,21 +164,31 @@ export default function ClaudeLayoutChat() {
   // Load data from localStorage on mount
   useEffect(() => {
     try {
-      const savedSessions = loadFromStorage('sessions');
-      const savedStarred = loadFromStorage('starredSessions');
-      const savedCurrentSession = loadFromStorage('currentSessionId');
+      if (typeof window === 'undefined') return;
       
-      if (savedSessions && Array.isArray(savedSessions)) {
-        setSessions(savedSessions);
+      // Simple localStorage access without userEmail dependency
+      const savedSessions = localStorage.getItem('chris-ai-sessions');
+      const savedStarred = localStorage.getItem('chris-ai-starredSessions');
+      const savedCurrentSession = localStorage.getItem('chris-ai-currentSessionId');
+      
+      if (savedSessions) {
+        const sessions = JSON.parse(savedSessions);
+        if (Array.isArray(sessions)) {
+          setSessions(sessions);
+        }
       }
       
-      if (savedStarred && Array.isArray(savedStarred)) {
-        setStarredSessions(savedStarred);
+      if (savedStarred) {
+        const starred = JSON.parse(savedStarred);
+        if (Array.isArray(starred)) {
+          setStarredSessions(starred);
+        }
       }
       
       if (savedCurrentSession) {
         setCurrentSessionId(savedCurrentSession);
-        const session = savedSessions?.find((s: ChatSession) => s.id === savedCurrentSession);
+        const sessions = savedSessions ? JSON.parse(savedSessions) : [];
+        const session = sessions.find((s: ChatSession) => s.id === savedCurrentSession);
         if (session && session.messages && Array.isArray(session.messages) && session.messages.length > 0) {
           setMessages(session.messages);
           setShowWelcome(false);
@@ -187,40 +197,40 @@ export default function ClaudeLayoutChat() {
     } catch (error) {
       console.error('Error loading data from storage:', error);
     }
-  }, [userEmail]); // Re-run when user changes
+  }, []); // Remove userEmail dependency
 
   // Save sessions to localStorage whenever they change
   useEffect(() => {
     try {
-      if (sessions.length > 0) {
-        saveToStorage('sessions', sessions);
+      if (sessions.length > 0 && typeof window !== 'undefined') {
+        localStorage.setItem('chris-ai-sessions', JSON.stringify(sessions));
       }
     } catch (error) {
       console.error('Error saving sessions:', error);
     }
-  }, [sessions, userEmail]);
+  }, [sessions]);
 
   // Save starred sessions to localStorage whenever they change
   useEffect(() => {
     try {
-      if (starredSessions.length > 0) {
-        saveToStorage('starredSessions', starredSessions);
+      if (starredSessions.length > 0 && typeof window !== 'undefined') {
+        localStorage.setItem('chris-ai-starredSessions', JSON.stringify(starredSessions));
       }
     } catch (error) {
       console.error('Error saving starred sessions:', error);
     }
-  }, [starredSessions, userEmail]);
+  }, [starredSessions]);
 
   // Save current session ID to localStorage whenever it changes
   useEffect(() => {
     try {
-      if (currentSessionId) {
-        saveToStorage('currentSessionId', currentSessionId);
+      if (currentSessionId && typeof window !== 'undefined') {
+        localStorage.setItem('chris-ai-currentSessionId', currentSessionId);
       }
     } catch (error) {
       console.error('Error saving current session:', error);
     }
-  }, [currentSessionId, userEmail]);
+  }, [currentSessionId]);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -1010,25 +1020,13 @@ export default function ClaudeLayoutChat() {
 
           {/* Right Side - Login Button and Agent Dropdown */}
           <div className="flex items-center space-x-3">
-            {/* Login/User Button */}
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-text-secondary">{userEmail}</span>
-                <button
-                  onClick={handleLogout}
-                  className="px-3 py-2 text-sm bg-custom-dark-tertiary hover:bg-custom-dark rounded-lg text-text-secondary hover:text-text transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="px-4 py-2 text-sm bg-lime-500 hover:bg-lime-400 text-black rounded-lg font-medium transition-colors"
-              >
-                Sign In
-              </button>
-            )}
+            {/* Login/User Button - Temporarily disabled for debugging */}
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-4 py-2 text-sm bg-lime-500 hover:bg-lime-400 text-black rounded-lg font-medium transition-colors"
+            >
+              Sign In
+            </button>
             
             <div className="relative" ref={dropdownRef}>
             <motion.button
