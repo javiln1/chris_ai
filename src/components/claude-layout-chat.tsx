@@ -297,22 +297,19 @@ export default function ClaudeLayoutChat() {
         if (done) break;
 
         const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n');
+        console.log('Stream chunk:', chunk); // Debug log
         
-        for (const line of lines) {
-          if (line.startsWith('0:')) {
-            const content = line.slice(2);
-            aiResponse += content;
-            
-            // Update the message with streaming content
-            const updatedMessage = { ...aiMessage, content: aiResponse };
-            const updatedMessages = [...newMessages, updatedMessage];
-            setMessages(updatedMessages);
-            
-            if (currentSessionId) {
-              updateSession(currentSessionId, updatedMessages);
-            }
-          }
+        // AI SDK v5 returns plain text chunks, not formatted lines
+        // Each chunk is a piece of the response
+        aiResponse += chunk;
+        
+        // Update the message with streaming content
+        const updatedMessage = { ...aiMessage, content: aiResponse };
+        const updatedMessages = [...newMessages, updatedMessage];
+        setMessages(updatedMessages);
+        
+        if (currentSessionId) {
+          updateSession(currentSessionId, updatedMessages);
         }
       }
 
