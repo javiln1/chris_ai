@@ -1,6 +1,4 @@
 import { openai } from '@ai-sdk/openai';
-import { anthropic } from '@ai-sdk/anthropic';
-import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { getAgentById } from '@/lib/agents';
 
@@ -26,61 +24,54 @@ export async function POST(req: Request) {
 
     let model;
 
+    // For now, let's only support OpenAI models to simplify debugging
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OpenAI API key not found in environment variables');
+      throw new Error('OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables.');
+    }
+
     // Select model based on agentId
     switch (agentId) {
       case 'chatgpt4':
-        if (!process.env.OPENAI_API_KEY) {
-          console.error('OpenAI API key not found in environment variables');
-          throw new Error('OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables.');
-        }
-        model = openai('gpt-4o-mini', {
-          apiKey: process.env.OPENAI_API_KEY
-        });
+        model = openai('gpt-4o-mini');
         break;
       case 'chatgpt5':
-        if (!process.env.OPENAI_API_KEY) {
-          console.error('OpenAI API key not found in environment variables');
-          throw new Error('OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables.');
-        }
-        model = openai('gpt-4o', {
-          apiKey: process.env.OPENAI_API_KEY
-        });
-        break;
-      case 'claude3':
-        if (!process.env.ANTHROPIC_API_KEY) {
-          throw new Error('Anthropic API key not configured');
-        }
-        model = anthropic('claude-3-haiku-20240307');
-        break;
-      case 'claude4':
-        if (!process.env.ANTHROPIC_API_KEY) {
-          throw new Error('Anthropic API key not configured');
-        }
-        model = anthropic('claude-3-5-sonnet-20241022');
-        break;
-      case 'gemini':
-        if (!process.env.GOOGLE_API_KEY) {
-          throw new Error('Google API key not configured');
-        }
-        model = google('gemini-1.5-pro');
+        model = openai('gpt-4o');
         break;
       default:
-        throw new Error('Unsupported agent');
+        // Default to ChatGPT 4.0 for any other agent
+        model = openai('gpt-4o-mini');
+        break;
     }
+
+    console.log('Selected model:', model);
+
+    console.log('About to call streamText with:', {
+      modelType: typeof model,
+      messageCount: messages.length,
+      systemPromptLength: agent.systemPrompt.length
+    });
 
     const result = await streamText({
       model,
       messages,
       system: agent.systemPrompt,
-      maxTokens: 2000,
+      maxTokens: 1000, // Reduced to avoid token limits
     });
 
+    console.log('streamText successful, returning response');
     return result.toDataStreamResponse();
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Error Details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    });
+    
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Internal server error' 
+        error: error instanceof Error ? error.message : 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error : undefined
       }),
       { 
         status: 500,
