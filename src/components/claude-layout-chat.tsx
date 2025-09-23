@@ -1185,31 +1185,31 @@ export default function ClaudeLayoutChat() {
                             </motion.button>
                           </div>
                         </div>
-                      </div>
-                      
-                      {/* Send Button */}
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleSendMessage(input)}
-                        disabled={isLoading}
-                        className={`p-3 sm:p-3 rounded-lg transition-all duration-200 flex-shrink-0 min-w-[44px] min-h-[44px] touch-manipulation ${
-                          input.trim() 
-                            ? 'bg-lime-500 hover:bg-lime-400 text-black' 
-                            : 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30'
-                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                        <motion.svg 
-                          className="w-5 h-5" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
-                          animate={{ rotate: isLoading ? 360 : 0 }}
-                          transition={{ duration: 0.5 }}
+                        
+                        {/* Send Button - Now inline with the input */}
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleSendMessage(input)}
+                          disabled={isLoading}
+                          className={`p-3 sm:p-3 rounded-lg transition-all duration-200 flex-shrink-0 min-w-[44px] min-h-[44px] touch-manipulation ${
+                            input.trim() 
+                              ? 'bg-lime-500 hover:bg-lime-400 text-black' 
+                              : 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30'
+                          } ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </motion.svg>
-                      </motion.button>
+                          <motion.svg 
+                            className="w-5 h-5" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                            animate={{ rotate: isLoading ? 360 : 0 }}
+                            transition={{ duration: 0.5 }}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </motion.svg>
+                        </motion.button>
+                      </div>
                     </div>
                   </motion.div>
 
