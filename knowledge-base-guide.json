@@ -1,0 +1,180 @@
+{
+  "knowledge_base_overview": {
+    "total_documents": 69,
+    "categories": 7,
+    "description": "Organized knowledge base of GPC course content"
+  },
+  "search_categories": {
+    "content_creation": {
+      "name": "Content Creation & Filming",
+      "keywords": [
+        "filming",
+        "content",
+        "video",
+        "background",
+        "lighting",
+        "hand movements",
+        "eye",
+        "music",
+        "sounds",
+        "controversy",
+        "pace",
+        "viral",
+        "hooks"
+      ],
+      "description": "Everything about creating compelling video content"
+    },
+    "social_media_strategy": {
+      "name": "Social Media Strategy",
+      "keywords": [
+        "tiktok",
+        "instagram",
+        "youtube",
+        "facebook",
+        "account",
+        "fyp",
+        "viral",
+        "platform",
+        "optimization",
+        "burners",
+        "recycle",
+        "targeting",
+        "countries"
+      ],
+      "description": "Platform-specific strategies and optimization"
+    },
+    "product_research": {
+      "name": "Product Research & Sourcing",
+      "keywords": [
+        "product",
+        "research",
+        "sourcing",
+        "temu",
+        "ali",
+        "cj",
+        "saturation",
+        "good vs bad",
+        "untapped",
+        "existing",
+        "custom"
+      ],
+      "description": "Finding and evaluating profitable products"
+    },
+    "business_development": {
+      "name": "Business & Brand Building",
+      "keywords": [
+        "brand",
+        "website",
+        "building",
+        "selling",
+        "bundles",
+        "aov",
+        "cvr",
+        "email marketing",
+        "broadcast",
+        "longevity",
+        "consistency"
+      ],
+      "description": "Building and scaling your business"
+    },
+    "marketing_strategies": {
+      "name": "Marketing & Growth",
+      "keywords": [
+        "marketing",
+        "angles",
+        "audience",
+        "niche",
+        "growth",
+        "archive",
+        "method",
+        "prime",
+        "trials",
+        "sales",
+        "offer"
+      ],
+      "description": "Marketing tactics and growth strategies"
+    },
+    "case_studies": {
+      "name": "Case Studies & Results",
+      "keywords": [
+        "case study",
+        "results",
+        "subs",
+        "months",
+        "filming",
+        "k",
+        "million",
+        "30m",
+        "250k",
+        "350k",
+        "20k"
+      ],
+      "description": "Real success stories and results"
+    },
+    "advanced_tactics": {
+      "name": "Advanced Tactics",
+      "keywords": [
+        "bts",
+        "behind the scenes",
+        "whole",
+        "creating",
+        "shareable",
+        "replicating",
+        "concepts",
+        "dropshipping"
+      ],
+      "description": "Advanced strategies and behind-the-scenes insights"
+    }
+  },
+  "example_queries": {
+    "content_creation": [
+      "How to set up professional lighting",
+      "Best hand movements for videos",
+      "Music synchronization techniques",
+      "Creating controversial content"
+    ],
+    "social_media_strategy": [
+      "TikTok FYP optimization",
+      "Instagram growth strategies",
+      "YouTube channel setup",
+      "Facebook marketing tactics"
+    ],
+    "product_research": [
+      "Finding profitable products",
+      "Temu and AliExpress methods",
+      "Market saturation analysis",
+      "Product sourcing strategies"
+    ],
+    "business_development": [
+      "Building a brand",
+      "Website development",
+      "Email marketing campaigns",
+      "Scaling your business"
+    ],
+    "marketing_strategies": [
+      "Audience targeting",
+      "Niche growth methods",
+      "Archive method strategies",
+      "Sales funnel optimization"
+    ],
+    "case_studies": [
+      "30M follower success story",
+      "250K subscribers in one month",
+      "350K growth case study",
+      "20K profit in 3 months"
+    ],
+    "advanced_tactics": [
+      "Behind the scenes content",
+      "Advanced dropshipping",
+      "Replicating viral concepts",
+      "Shareable content creation"
+    ]
+  },
+  "usage_tips": [
+    "Use specific topic-related queries for best results",
+    "Include platform names (TikTok, Instagram, etc.) in searches",
+    "Ask for case studies when looking for proven results",
+    "Use 'BTS' or 'behind the scenes' for advanced tactics",
+    "Include 'how to' for step-by-step guides"
+  ]
+}

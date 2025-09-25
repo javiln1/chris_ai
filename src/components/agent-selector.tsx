@@ -82,6 +82,13 @@ export default function AgentSelector({ selectedAgent, onAgentChange, className 
                     </span>
                   )}
                 </div>
+                {agent.tools && agent.tools.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <span className="px-1 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded">
+                      🛠️ {agent.tools.length} tools
+                    </span>
+                  </div>
+                )}
               </div>
               {selectedAgent === agent.id && (
                 <div className="w-2 h-2 bg-accent rounded-full"></div>
@@ -105,6 +112,23 @@ export default function AgentSelector({ selectedAgent, onAgentChange, className 
               </span>
             ))}
           </div>
+          
+          {currentAgent.tools && currentAgent.tools.length > 0 && (
+            <>
+              <h4 className="text-sm font-semibold text-text mb-2 mt-3">Available Tools</h4>
+              <div className="flex flex-wrap gap-2">
+                {currentAgent.tools.map((tool) => (
+                  <span 
+                    key={tool}
+                    className="px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full"
+                  >
+                    🛠️ {tool}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+          
           <h4 className="text-sm font-semibold text-text mb-2 mt-3">Example Questions</h4>
           <div className="space-y-1">
             {currentAgent.examples.map((example) => (
