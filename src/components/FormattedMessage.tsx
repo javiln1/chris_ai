@@ -72,8 +72,8 @@ export default function FormattedMessage({
     <div
       className={`group relative w-full rounded-2xl p-4 sm:p-5
                    ${role === 'assistant' ? 'bg-zinc-900/70' : 'bg-zinc-900/40'}
-                   shadow-[0_1px_0_0_rgba(255,255,255,0.04),0_12px_30px_-12px_rgba(0,0,0,0.6)]
-                   transition-shadow duration-200 hover:shadow-[0_1px_0_0_rgba(255,255,255,0.06),0_18px_36px_-12px_rgba(0,0,0,0.75)]`}
+                   shadow-md shadow-black/20 hover:shadow-lg hover:shadow-black/30
+                   transition-shadow duration-200`}
     >
       {/* Copy */}
       {/* Copy button container */}
@@ -110,10 +110,6 @@ export default function FormattedMessage({
         )}
       </div>
 
-      {/* TEMP sanity header: should render as a large H2 if this component is active */}
-      {role === "assistant" && (
-        <div className="mb-2 text-xs text-zinc-500">## TEST SHOULD BE A BIG H2</div>
-      )}
 
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
