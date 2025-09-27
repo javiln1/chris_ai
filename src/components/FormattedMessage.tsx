@@ -73,12 +73,39 @@ export default function FormattedMessage({
       className={`group relative w-full rounded-2xl border p-4 sm:p-5 bg-zinc-900/60 border-zinc-800`}
     >
       {/* Copy */}
-      <button
-        onClick={onCopy}
-        className="absolute right-3 top-3 text-xs px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200"
-      >
-        {copied ? "Copied" : "Copy"}
-      </button>
+      {/* Copy button container */}
+      <div className="absolute right-3 top-3">
+        <button
+          onClick={onCopy}
+          aria-label="Copy message"
+          title="Copy"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md
+                     bg-zinc-800/70 backdrop-blur-sm ring-1 ring-inset ring-zinc-700/60
+                     opacity-0 group-hover:opacity-100 focus:opacity-100
+                     hover:bg-zinc-800 transition-opacity duration-150"
+        >
+          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+            <path d="M7 4.5h6M8 3h4a1 1 0 0 1 1 1v.5h1.5A1.5 1.5 0 0 1 16 6v9A1.5 1.5 0 0 1 14.5 16h-9A1.5 1.5 0 0 1 4 14.5v-9A1.5 1.5 0 0 1 5.5 4.5H7V4a1 1 0 0 1 1-1Z"
+                  stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+          <span className="sr-only">{copied ? 'Copied' : 'Copy'}</span>
+        </button>
+
+        {/* Floating tooltip */}
+        {copied && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="pointer-events-none absolute -right-1 bottom-9 select-none
+                       rounded-md px-2 py-0.5 text-[11px] font-medium
+                       text-zinc-100 bg-zinc-800/90 ring-1 ring-zinc-700/60
+                       shadow-[0_8px_20px_-10px_rgba(0,0,0,0.8)]
+                       animate-float-fade"
+          >
+            Copied ✓
+          </div>
+        )}
+      </div>
 
       {/* TEMP sanity header: should render as a large H2 if this component is active */}
       {role === "assistant" && (
