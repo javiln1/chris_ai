@@ -275,11 +275,113 @@ export default function MultiAgentChat() {
                     <div className="flex-1">
                       {/* Formatted message content with markdown */}
                       {message.role === 'assistant' ? (
-                        <div className="prose prose-invert max-w-none">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {parsedContent.mainContent}
-                          </ReactMarkdown>
-                        </div>
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            h1: ({children}) => (
+                              <h1 style={{
+                                fontSize: '2rem',
+                                fontWeight: 'bold',
+                                color: '#00ff00',
+                                marginBottom: '1rem',
+                                marginTop: '1.5rem'
+                              }}>{children}</h1>
+                            ),
+                            h2: ({children}) => (
+                              <h2 style={{
+                                fontSize: '1.5rem',
+                                fontWeight: 'bold',
+                                color: '#00ff00',
+                                marginBottom: '0.75rem',
+                                marginTop: '1.25rem'
+                              }}>{children}</h2>
+                            ),
+                            h3: ({children}) => (
+                              <h3 style={{
+                                fontSize: '1.25rem',
+                                fontWeight: 'bold',
+                                color: '#00ff88',
+                                marginBottom: '0.5rem',
+                                marginTop: '1rem'
+                              }}>{children}</h3>
+                            ),
+                            p: ({children}) => (
+                              <p style={{
+                                color: '#EAEAEA',
+                                lineHeight: '1.6',
+                                marginBottom: '1rem'
+                              }}>{children}</p>
+                            ),
+                            strong: ({children}) => (
+                              <strong style={{
+                                color: '#00ff88',
+                                fontWeight: 'bold'
+                              }}>{children}</strong>
+                            ),
+                            em: ({children}) => (
+                              <em style={{
+                                color: '#B3B3B3',
+                                fontStyle: 'italic'
+                              }}>{children}</em>
+                            ),
+                            ul: ({children}) => (
+                              <ul style={{
+                                color: '#EAEAEA',
+                                margin: '1rem 0',
+                                paddingLeft: '1.5rem'
+                              }}>{children}</ul>
+                            ),
+                            ol: ({children}) => (
+                              <ol style={{
+                                color: '#EAEAEA',
+                                margin: '1rem 0',
+                                paddingLeft: '1.5rem'
+                              }}>{children}</ol>
+                            ),
+                            li: ({children}) => (
+                              <li style={{
+                                color: '#EAEAEA',
+                                lineHeight: '1.6',
+                                marginBottom: '0.5rem'
+                              }}>{children}</li>
+                            ),
+                            blockquote: ({children}) => (
+                              <blockquote style={{
+                                color: '#B3B3B3',
+                                borderLeft: '4px solid #00ff00',
+                                paddingLeft: '1rem',
+                                fontStyle: 'italic',
+                                margin: '1rem 0'
+                              }}>{children}</blockquote>
+                            ),
+                            code: ({children}) => (
+                              <code style={{
+                                color: '#00ff88',
+                                backgroundColor: '#222222',
+                                padding: '0.125rem 0.25rem',
+                                borderRadius: '0.25rem',
+                                fontSize: '0.875rem'
+                              }}>{children}</code>
+                            ),
+                            a: ({children, href}) => (
+                              <a href={href} style={{
+                                color: '#00ff00',
+                                textDecoration: 'none'
+                              }} onMouseEnter={(e) => e.target.style.textDecoration = 'underline'} 
+                                 onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
+                                {children}
+                              </a>
+                            ),
+                            hr: () => (
+                              <hr style={{
+                                border: '1px solid #404040',
+                                margin: '2rem 0'
+                              }} />
+                            )
+                          }}
+                        >
+                          {parsedContent.mainContent}
+                        </ReactMarkdown>
                       ) : (
                         <p className="text-base leading-relaxed text-text whitespace-pre-wrap">
                           {parsedContent.mainContent}
