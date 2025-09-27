@@ -59,9 +59,12 @@ export async function POST(req: Request) {
                                   query.includes('jordaninaforeign');
       
       if (isKnowledgeBaseQuery && agent.tools && agent.tools.includes('searchKnowledgeBase')) {
+        console.log('🔍 Knowledge base query detected:', latestMessage.content);
         try {
           const { searchKnowledgeBase } = await import('@/lib/pinecone');
+          console.log('📚 Searching knowledge base...');
           const results = await searchKnowledgeBase(latestMessage.content, undefined, 3);
+          console.log('📊 Found results:', results.length);
           
           if (results.length > 0) {
             knowledgeBaseResults = `\n\nKNOWLEDGE BASE SEARCH RESULTS for "${latestMessage.content}":\n`;
@@ -71,10 +74,18 @@ export async function POST(req: Request) {
               knowledgeBaseResults += `   Creator: ${result.creator || 'Unknown'}\n`;
               knowledgeBaseResults += `   Content: ${result.content.substring(0, 200)}...\n\n`;
             });
+            console.log('✅ Knowledge base results added to prompt');
+          } else {
+            console.log('❌ No knowledge base results found');
           }
         } catch (error) {
-          console.error('Error searching knowledge base:', error);
+          console.error('❌ Error searching knowledge base:', error);
         }
+      } else {
+        console.log('ℹ️ Not a knowledge base query or agent not configured');
+        console.log('Query:', latestMessage.content);
+        console.log('Is KB query:', isKnowledgeBaseQuery);
+        console.log('Agent tools:', agent.tools);
       }
     }
     
@@ -145,35 +156,94 @@ Remember to:
       temperature: agent.temperature || 0.7,
       maxTokens: agent.maxTokens || 1000,
       tools: Object.keys(tools).length > 0 ? tools : undefined,
-      onFinish: async (result) => {
-        // If we have knowledge base results, append them as sources
-        if (knowledgeBaseResults && latestMessage) {
-          try {
-            const { searchKnowledgeBase } = await import('@/lib/pinecone');
-            const results = await searchKnowledgeBase(latestMessage.content, undefined, 3);
-            
-            if (results.length > 0) {
-              const sources = results.map(result => ({
-                title: result.title,
-                content: result.content,
-                category: result.category,
-                creator: result.creator,
-                relevance: Math.round(result.score * 100) + '%',
-                score: result.score,
-                hasVideo: !!result.video_url,
-                videoUrl: result.video_url
-              }));
-              
-              result.text += `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ sources, searchQuery: latestMessage.content })} -->`;
-            }
-          } catch (error) {
-            console.error('Error getting sources for response:', error);
-          }
-        }
-      },
     });
 
-    // Try different response methods for AI SDK v5
+    // If we have knowledge base results, create a custom streaming response
+    if (knowledgeBaseResults && latestMessage) {
+      console.log('🔧 Creating custom streaming response with sources...');
+      
+      // Get the sources data
+      let sourcesData = '';
+      try {
+        const { searchKnowledgeBase } = await import('@/lib/pinecone');
+        const results = await searchKnowledgeBase(latestMessage.content, undefined, 3);
+        
+        if (results.length > 0) {
+          const sources = results.map(result => ({
+            title: result.title,
+            content: result.content,
+            category: result.category,
+            creator: result.creator,
+            relevance: Math.round(result.score * 100) + '%',
+            score: result.score,
+            hasVideo: !!result.video_url,
+            videoUrl: result.video_url
+          }));
+          
+          sourcesData = `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ sources, searchQuery: latestMessage.content })} -->`;
+          console.log('✅ Sources data prepared:', sources.length, 'sources');
+        }
+      } catch (error) {
+        console.error('❌ Error preparing sources data:', error);
+      }
+      
+      // Create a custom streaming response that appends sources data
+      const encoder = new TextEncoder();
+      
+      const customStream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Get the text stream from the result
+            let stream;
+            if (typeof result.toTextStreamResponse === 'function') {
+              stream = result.toTextStreamResponse().body;
+            } else if (typeof result.toDataStreamResponse === 'function') {
+              stream = result.toDataStreamResponse().body;
+            } else {
+              // Fallback: get the full text and stream it
+              const fullText = await result.text;
+              controller.enqueue(encoder.encode(fullText));
+              if (sourcesData) {
+                controller.enqueue(encoder.encode(sourcesData));
+              }
+              controller.close();
+              return;
+            }
+            
+            if (stream) {
+              const reader = stream.getReader();
+              
+              while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) {
+                  // Append sources data at the end
+                  if (sourcesData) {
+                    controller.enqueue(encoder.encode(sourcesData));
+                  }
+                  controller.close();
+                  break;
+                }
+                
+                controller.enqueue(value);
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error in custom stream:', error);
+            controller.error(error);
+          }
+        }
+      });
+      
+      return new Response(customStream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+        },
+      });
+    }
+
+    // Default streaming response if no knowledge base results
     if (typeof result.toDataStreamResponse === 'function') {
       return result.toDataStreamResponse();
     } else if (typeof result.toResponse === 'function') {
