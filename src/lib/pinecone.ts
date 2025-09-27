@@ -1,15 +1,33 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 import OpenAI from 'openai';
 
-// Initialize Pinecone client
-const pc = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY!,
-});
+// Lazy initialization to avoid build-time errors
+let pc: Pinecone | null = null;
+let openai: OpenAI | null = null;
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+function getPineconeClient() {
+  if (!pc) {
+    if (!process.env.PINECONE_API_KEY) {
+      throw new Error('Pinecone API key missing. Please set PINECONE_API_KEY environment variable.');
+    }
+    pc = new Pinecone({
+      apiKey: process.env.PINECONE_API_KEY,
+    });
+  }
+  return pc;
+}
+
+function getOpenAIClient() {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key missing. Please set OPENAI_API_KEY environment variable.');
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 export interface SearchResult {
   title: string;
@@ -26,11 +44,15 @@ export async function searchKnowledgeBase(
   limit: number = 5
 ): Promise<SearchResult[]> {
   try {
+    // Get the clients
+    const pcClient = getPineconeClient();
+    const openaiClient = getOpenAIClient();
+    
     // Get the index
-    const index = pc.index('gpc-knowledge-base');
+    const index = pcClient.index('gpc-knowledge-base');
 
     // Create embedding for the query
-    const embeddingResponse = await openai.embeddings.create({
+    const embeddingResponse = await openaiClient.embeddings.create({
       model: 'text-embedding-3-small',
       input: query,
     });
