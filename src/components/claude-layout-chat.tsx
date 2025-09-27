@@ -13,6 +13,7 @@ import ProfilePage from './profile-page';
 import HelpSupportPage from './help-support-page';
 import ToggleSwitch from './toggle-switch';
 import ConnectorsModal from './connectors-modal';
+import FormattedMessage from './FormattedMessage';
 
 interface Message {
   id: string;
@@ -1293,11 +1294,10 @@ export default function ClaudeLayoutChat() {
                             ))}
                           </div>
                         )}
-                        <div className="prose prose-invert max-w-none">
-                          <p className="text-base leading-relaxed text-text whitespace-pre-wrap">
-                            {message.content}
-                          </p>
-                        </div>
+                        <FormattedMessage 
+                          role={message.role} 
+                          content={message.content} 
+                        />
                       </div>
                     </motion.div>
                   ))}

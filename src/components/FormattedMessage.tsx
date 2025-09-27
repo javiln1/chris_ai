@@ -55,6 +55,7 @@ export default function FormattedMessage({
   role: "user" | "assistant" | "system";
   content: string;
 }) {
+  console.log("[FormattedMessage] rendering with markdown for role:", role);
   const [copied, setCopied] = useState(false);
   const sources = useMemo(() => parseSources(content), [content]);
   const clean = useMemo(() => stripSourcesComment(content), [content]);
@@ -78,6 +79,11 @@ export default function FormattedMessage({
       >
         {copied ? "Copied" : "Copy"}
       </button>
+
+      {/* TEMP sanity header: should render as a large H2 if this component is active */}
+      {role === "assistant" && (
+        <div className="mb-2 text-xs text-zinc-500">## TEST SHOULD BE A BIG H2</div>
+      )}
 
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
