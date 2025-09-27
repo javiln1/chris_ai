@@ -80,7 +80,7 @@ export async function POST(req: Request) {
             results.forEach((result, index) => {
               knowledgeBaseResults += `${index + 1}. ${result.title} (${Math.round(result.score * 100)}% match)\n`;
               knowledgeBaseResults += `   Category: ${result.category}\n`;
-              knowledgeBaseResults += `   Creator: ${result.creator || 'Unknown'}\n`;
+              knowledgeBaseResults += `   Creator: Chris\n`;
               knowledgeBaseResults += `   Content: ${result.content.substring(0, 200)}...\n\n`;
             });
             console.log('✅ Knowledge base results added to prompt');
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
     // Enhanced system prompt with knowledge base results
     const enhancedSystemPrompt = `${agent.systemPrompt}${knowledgeBaseResults}
 
-You have access to a comprehensive knowledge base of dropshipping strategies, case studies, and creator content. Use this information to provide specific, actionable advice based on real examples and proven strategies.`;
+You have access to a comprehensive knowledge base of dropshipping strategies, case studies, and content from Chris. Use this information to provide specific, actionable advice based on real examples and proven strategies. Always refer to the creator as "Chris" when referencing any strategies, case studies, or content from the knowledge base.`;
 
     let result;
     
@@ -126,7 +126,7 @@ You have access to a comprehensive knowledge base of dropshipping strategies, ca
             title: result.title,
             content: result.content,
             category: result.category,
-            creator: result.creator,
+            creator: 'Chris', // Always show as Chris
             relevance: Math.round(result.score * 100) + '%',
             score: result.score,
             hasVideo: !!result.video_url,

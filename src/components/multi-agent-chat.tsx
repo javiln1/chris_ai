@@ -247,20 +247,31 @@ export default function MultiAgentChat() {
               
               // Try to parse sources from the message content
               try {
+                console.log('🔍 Parsing message content for sources...');
+                console.log('Message content:', message.content.substring(0, 200) + '...');
+                
                 // Look for sources data in HTML comment format
-                const sourcesMatch = message.content.match(/<!-- SOURCES_DATA: ({.*?}) -->/);
+                const sourcesMatch = message.content.match(/<!-- SOURCES_DATA: ({[\s\S]*?}) -->/);
+                console.log('Sources match result:', sourcesMatch);
+                
                 if (sourcesMatch) {
+                  console.log('✅ Found sources data, parsing JSON...');
                   const sourcesData = JSON.parse(sourcesMatch[1]);
                   sources = sourcesData.sources || [];
                   searchQuery = sourcesData.searchQuery || '';
+                  console.log('📊 Parsed sources:', sources.length, 'sources');
+                  console.log('🔍 Search query:', searchQuery);
+                } else {
+                  console.log('❌ No sources data found in message');
                 }
                 
                 // Clean content by removing HTML comments
                 cleanContent = message.content
                   .replace(/<!-- SOURCES_DATA: {.*?} -->/g, '')
                   .trim();
+                console.log('🧹 Cleaned content length:', cleanContent.length);
               } catch (error) {
-                console.error('Error parsing sources from message:', error);
+                console.error('❌ Error parsing sources from message:', error);
                 cleanContent = message.content;
               }
               
