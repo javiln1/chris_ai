@@ -3,7 +3,6 @@
 import { useChat } from 'ai';
 import { useState } from 'react';
 import Image from 'next/image';
-import { Response } from '@/components/ai-elements/response';
 import { Message } from '@/components/ai-elements/message';
 import { Branch } from '@/components/ai-elements/branch';
 import FlowTab from '@/components/flow-tab';
@@ -105,52 +104,28 @@ const FormattedMessage = ({ content, role, onCopy }: { content: string; role: st
       </button>
       
       {/* Formatted markdown content */}
-      <div className="prose prose-invert prose-lg max-w-none
-        prose-headings:text-lime-400 prose-headings:font-bold
-        prose-h1:text-3xl prose-h1:mb-4 prose-h1:mt-6
-        prose-h2:text-2xl prose-h2:mb-3 prose-h2:mt-5
-        prose-h3:text-xl prose-h3:mb-2 prose-h3:mt-4
-        prose-p:text-gray-200 prose-p:leading-relaxed prose-p:mb-4
-        prose-strong:text-lime-300 prose-strong:font-semibold
-        prose-em:text-gray-300
-        prose-ul:text-gray-200 prose-ul:my-4 prose-ul:space-y-2
-        prose-ol:text-gray-200 prose-ol:my-4 prose-ol:space-y-2
-        prose-li:text-gray-200 prose-li:leading-relaxed
-        prose-li:marker:text-lime-400
-        prose-blockquote:text-gray-300 prose-blockquote:border-l-4 prose-blockquote:border-lime-400 prose-blockquote:pl-4 prose-blockquote:italic
-        prose-code:text-lime-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-        prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-lg
-        prose-a:text-lime-400 prose-a:no-underline hover:prose-a:text-lime-300 hover:prose-a:underline
-        prose-hr:border-gray-700">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            // Custom code block rendering
-            code({node, className, children, ...props}: any) {
-              const match = /language-(\w+)/.exec(className || '');
-              const inline = !match;
-              
-              return inline ? (
-                <code className="bg-gray-800 text-lime-300 px-1 py-0.5 rounded text-sm" {...props}>
-                  {children}
-                </code>
-              ) : (
-                <SyntaxHighlighter
-                  style={vscDarkPlus}
-                  language={match[1]}
-                  PreTag="div"
-                  className="rounded-lg text-sm"
-                  {...props}
-                >
-                  {String(children).replace(/\n$/, '')}
-                </SyntaxHighlighter>
-              );
-            },
-          }}
-        >
-          {content}
-        </ReactMarkdown>
-      </div>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        className="prose prose-invert prose-lg max-w-none
+          prose-headings:text-lime-400 prose-headings:font-bold
+          prose-h1:text-3xl prose-h1:mb-4 prose-h1:mt-6
+          prose-h2:text-2xl prose-h2:mb-3 prose-h2:mt-5
+          prose-h3:text-xl prose-h3:mb-2 prose-h3:mt-4
+          prose-p:text-gray-200 prose-p:leading-relaxed prose-p:mb-4
+          prose-strong:text-lime-300 prose-strong:font-semibold
+          prose-em:text-gray-300
+          prose-ul:text-gray-200 prose-ul:my-4 prose-ul:space-y-2
+          prose-ol:text-gray-200 prose-ol:my-4 prose-ol:space-y-2
+          prose-li:text-gray-200 prose-li:leading-relaxed
+          prose-li:marker:text-lime-400
+          prose-blockquote:text-gray-300 prose-blockquote:border-l-4 prose-blockquote:border-lime-400 prose-blockquote:pl-4 prose-blockquote:italic
+          prose-code:text-lime-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
+          prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-lg
+          prose-a:text-lime-400 prose-a:no-underline hover:prose-a:text-lime-300 hover:prose-a:underline
+          prose-hr:border-gray-700"
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 };
@@ -299,11 +274,17 @@ export default function MultiAgentChat() {
                     )}
                     <div className="flex-1">
                       {/* Formatted message content with markdown */}
-                      <FormattedMessage 
-                        content={parsedContent.mainContent}
-                        role={message.role}
-                        onCopy={() => copyToClipboard(message.content, showToast)}
-                      />
+                      {message.role === 'assistant' ? (
+                        <div className="prose prose-invert max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {parsedContent.mainContent}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-base leading-relaxed text-text whitespace-pre-wrap">
+                          {parsedContent.mainContent}
+                        </p>
+                      )}
                       
                       {/* Always-visible copy button for assistant messages */}
                       {message.role === 'assistant' && (
