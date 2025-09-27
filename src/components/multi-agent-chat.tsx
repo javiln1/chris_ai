@@ -7,14 +7,179 @@ import { Response } from '@/components/ai-elements/response';
 import { Message } from '@/components/ai-elements/message';
 import { Branch } from '@/components/ai-elements/branch';
 import FlowTab from '@/components/flow-tab';
-import AgentSelector from '@/components/agent-selector';
-import { getAgentById, detectAgentType } from '@/lib/agents';
+import { getAgentById } from '@/lib/agents';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+// STEP 3: Enhanced message parser function
+const parseAndFormatMessage = (content: string) => {
+  // Check if content contains SOURCES_DATA
+  const sourcesMatch = content.match(/<!-- SOURCES_DATA: (.*?) -->/);
+  
+  if (sourcesMatch) {
+    try {
+      // Extract the main content (before sources)
+      const mainContent = content.replace(/<!-- SOURCES_DATA:.*?-->/s, '').trim();
+      
+      // Parse the sources data
+      const sourcesData = JSON.parse(sourcesMatch[1]);
+      
+      return {
+        mainContent,
+        sources: sourcesData.sources || [],
+        sourceType: sourcesData.sourceType || 'none',
+        searchQuery: sourcesData.searchQuery || '',
+        hierarchy: sourcesData.hierarchy || ''
+      };
+    } catch (error) {
+      console.error('Error parsing sources:', error);
+      return { mainContent: content, sources: [] };
+    }
+  }
+  
+  return { mainContent: content, sources: [] };
+};
+
+// STEP 4: Copy to clipboard function
+const copyToClipboard = async (text: string, showToast: (message: string) => void) => {
+  try {
+    // Remove sources data from the text if present
+    const cleanText = text.replace(/<!-- SOURCES_DATA:.*?-->/s, '').trim();
+    await navigator.clipboard.writeText(cleanText);
+    showToast('Copied to clipboard!');
+  } catch (err) {
+    console.error('Failed to copy:', err);
+    showToast('Failed to copy');
+  }
+};
+
+// STEP 5: Toast notification component
+const Toast = ({ message, show }: { message: string; show: boolean }) => {
+  if (!show) return null;
+  
+  return (
+    <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
+      <div className="bg-lime-500 text-black px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+        <span className="font-medium">{message}</span>
+      </div>
+    </div>
+  );
+};
+
+// STEP 6: Formatted message component with markdown support
+const FormattedMessage = ({ content, role, onCopy }: { content: string; role: string; onCopy: () => void }) => {
+  const [showCopyButton, setShowCopyButton] = useState(false);
+  
+  if (role === 'user') {
+    // User messages remain plain text
+    return (
+      <p className="text-base leading-relaxed text-text whitespace-pre-wrap">
+        {content}
+      </p>
+    );
+  }
+  
+  // Assistant messages with markdown
+  return (
+    <div 
+      className="relative group"
+      onMouseEnter={() => setShowCopyButton(true)}
+      onMouseLeave={() => setShowCopyButton(false)}
+    >
+      {/* Copy button */}
+      <button
+        onClick={onCopy}
+        className={`absolute top-0 right-0 p-2 bg-custom-dark-secondary hover:bg-custom-dark-tertiary rounded-lg transition-all ${
+          showCopyButton ? 'opacity-100' : 'opacity-0'
+        }`}
+        aria-label="Copy message"
+      >
+        <svg className="w-4 h-4 text-text-secondary hover:text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      </button>
+      
+      {/* Formatted markdown content */}
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        className="prose prose-invert max-w-none
+          prose-headings:text-text prose-headings:font-bold
+          prose-h1:text-3xl prose-h1:mb-4 prose-h1:mt-6 prose-h1:text-lime-400
+          prose-h2:text-2xl prose-h2:mb-3 prose-h2:mt-5 prose-h2:text-lime-400
+          prose-h3:text-xl prose-h3:mb-2 prose-h3:mt-4 prose-h3:text-lime-300
+          prose-h4:text-lg prose-h4:mb-2 prose-h4:mt-3
+          prose-p:text-text prose-p:leading-relaxed prose-p:mb-4
+          prose-strong:text-lime-300 prose-strong:font-semibold
+          prose-em:text-gray-300
+          prose-ul:text-text prose-ul:my-4 prose-ul:space-y-2
+          prose-ol:text-text prose-ol:my-4 prose-ol:space-y-2
+          prose-li:text-text prose-li:leading-relaxed prose-li:ml-4
+          prose-li:marker:text-lime-400
+          prose-blockquote:text-gray-300 prose-blockquote:border-l-4 prose-blockquote:border-lime-400 prose-blockquote:pl-4 prose-blockquote:italic
+          prose-code:text-lime-300 prose-code:bg-custom-dark-tertiary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-[''] prose-code:after:content-['']
+          prose-pre:bg-custom-dark-tertiary prose-pre:border prose-pre:border-gray-800
+          prose-a:text-lime-400 prose-a:no-underline hover:prose-a:text-lime-300 hover:prose-a:underline
+          prose-hr:border-gray-700"
+        components={{
+          // Custom code block rendering
+          code({node, className, children, ...props}: any) {
+            const match = /language-(\w+)/.exec(className || '');
+            const inline = !match;
+            
+            return inline ? (
+              <code className="bg-custom-dark-tertiary text-lime-300 px-1 py-0.5 rounded text-sm" {...props}>
+                {children}
+              </code>
+            ) : (
+              <SyntaxHighlighter
+                style={vscDarkPlus}
+                language={match[1]}
+                PreTag="div"
+                className="rounded-lg text-sm"
+                {...props}
+              >
+                {String(children).replace(/\n$/, '')}
+              </SyntaxHighlighter>
+            );
+          },
+          // Custom paragraph rendering to handle line breaks
+          p({children}: any) {
+            return <p className="mb-4 leading-relaxed">{children}</p>;
+          },
+          // Enhanced list rendering
+          ul({children}: any) {
+            return <ul className="list-disc list-outside ml-6 space-y-2 my-4">{children}</ul>;
+          },
+          ol({children}: any) {
+            return <ol className="list-decimal list-outside ml-6 space-y-2 my-4">{children}</ol>;
+          },
+          li({children}: any) {
+            return <li className="text-text leading-relaxed">{children}</li>;
+          }
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+};
 
 export default function MultiAgentChat() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'flow'>('chat');
-  const [selectedAgent, setSelectedAgent] = useState('general');
-  const [agentSuggestions, setAgentSuggestions] = useState<string[]>([]);
+  
+  // Add toast state
+  const [toast, setToast] = useState({ show: false, message: '' });
+  
+  // Toast helper function
+  const showToast = (message: string) => {
+    setToast({ show: true, message });
+    setTimeout(() => setToast({ show: false, message: '' }), 3000);
+  };
   
   // Initialize with a welcome message
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
@@ -30,19 +195,12 @@ export default function MultiAgentChat() {
       console.error('Chat error:', error);
     },
     body: {
-      agentId: selectedAgent,
+      agentId: 'general', // Always use general agent
     },
   });
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
-    
-    // Auto-detect agent if none selected
-    const detectedAgent = detectAgentType(message);
-    if (selectedAgent === 'general' && detectedAgent !== 'general') {
-      setSelectedAgent(detectedAgent);
-      setAgentSuggestions([detectedAgent]);
-    }
     
     const syntheticEvent = {
       preventDefault: () => {},
@@ -55,11 +213,8 @@ export default function MultiAgentChat() {
     }, 0);
   };
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
 
-  const currentAgent = getAgentById(selectedAgent);
+  const currentAgent = getAgentById('general'); // Always use general agent
 
   return (
     <div className="antialiased">
@@ -113,107 +268,10 @@ export default function MultiAgentChat() {
           </div>
         </div>
 
-        {/* Desktop Sidebar Toggle */}
-        <button 
-          onClick={toggleSidebar}
-          className="hidden md:flex w-8 h-8 bg-custom-dark border border-border rounded-full items-center justify-center hover:bg-custom-dark-secondary transition-all duration-200"
-        >
-          <svg className={`w-4 h-4 text-text-secondary transition-transform duration-200 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
-          </svg>
-        </button>
       </header>
 
       {/* Main Content */}
       <div className="flex h-[calc(100vh-80px)]">
-        {/* Left Control Center - Only show in chat mode */}
-        {activeTab === 'chat' && (
-          <div className={`w-80 bg-custom-dark-secondary border-r border-border p-6 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-0 p-0 border-r-0 overflow-hidden' : ''}`}>
-            
-            {/* Agent Selector */}
-            <div className="mb-6">
-              <AgentSelector 
-                selectedAgent={selectedAgent}
-                onAgentChange={setSelectedAgent}
-              />
-            </div>
-
-            {/* Agent Suggestions */}
-            {agentSuggestions.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-text font-semibold mb-3">Suggested Agent</h4>
-                <div className="space-y-2">
-                  {agentSuggestions.map((agentId) => {
-                    const agent = getAgentById(agentId);
-                    return (
-                      <button
-                        key={agentId}
-                        onClick={() => setSelectedAgent(agentId)}
-                        className={`w-full text-left bg-custom-dark border border-border rounded-lg p-3 transition-all duration-200 ${
-                          selectedAgent === agentId ? 'border-accent bg-accent/10' : 'hover:border-gray-700'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div 
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-sm"
-                            style={{ backgroundColor: agent.color + '20' }}
-                          >
-                            {agent.icon}
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-text">{agent.name}</div>
-                            <div className="text-xs text-text-secondary">{agent.description}</div>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Quick Actions */}
-            <div className="space-y-3">
-              <h4 className="text-text font-semibold mb-3">Quick Actions</h4>
-              <button 
-                onClick={() => handleSendMessage("How do I find winning dropshipping products?")}
-                className="w-full text-left bg-custom-dark border border-border rounded-lg p-3 hover:border-gray-700 transition-all duration-200"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 text-green-400">🛍️</div>
-                  <span className="text-text">Find Winning Products</span>
-                </div>
-              </button>
-              <button 
-                onClick={() => handleSendMessage("Show me successful case studies from Bsmfredo")}
-                className="w-full text-left bg-custom-dark border border-border rounded-lg p-3 hover:border-gray-700 transition-all duration-200"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 text-blue-400">📈</div>
-                  <span className="text-text">Bsmfredo Case Studies</span>
-                </div>
-              </button>
-              <button 
-                onClick={() => handleSendMessage("What are the best viral strategies for organic dropshipping?")}
-                className="w-full text-left bg-custom-dark border border-border rounded-lg p-3 hover:border-gray-700 transition-all duration-200"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 text-red-400">🚀</div>
-                  <span className="text-text">Viral Strategies</span>
-                </div>
-              </button>
-              <button 
-                onClick={() => handleSendMessage("Help me with TikTok organic marketing strategies")}
-                className="w-full text-left bg-custom-dark border border-border rounded-lg p-3 hover:border-gray-700 transition-all duration-200"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 text-purple-400">📱</div>
-                  <span className="text-text">TikTok Marketing</span>
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Main Content Area */}
         {activeTab === 'chat' ? (
@@ -238,9 +296,8 @@ export default function MultiAgentChat() {
               </div>
             )}
             
-            {messages.map((message) => {
-              // Simple content display - no complex parsing needed
-              const cleanContent = message.content;
+                {messages.map((message, index) => {
+              const parsedContent = parseAndFormatMessage(message.content);
               
               return (
                 <Message key={message.id} from={message.role}>
@@ -255,9 +312,30 @@ export default function MultiAgentChat() {
                       </div>
                     )}
                     <div className="flex-1">
-                          <Response>
-                            {cleanContent}
-                          </Response>
+                      {/* Formatted message content with markdown */}
+                      <FormattedMessage 
+                        content={parsedContent.mainContent}
+                        role={message.role}
+                        onCopy={() => copyToClipboard(message.content, showToast)}
+                      />
+                      
+                      {/* Always-visible copy button for assistant messages */}
+                      {message.role === 'assistant' && (
+                        <div className="mt-4 pt-3 border-t border-gray-800 flex items-center justify-between">
+                          <span className="text-xs text-text-secondary">
+                            Response from {currentAgent.name}
+                          </span>
+                          <button
+                            onClick={() => copyToClipboard(message.content, showToast)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-custom-dark-secondary hover:bg-custom-dark-tertiary rounded-lg transition-colors group"
+                          >
+                            <svg className="w-4 h-4 text-text-secondary group-hover:text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-xs text-text-secondary group-hover:text-lime-400">Copy</span>
+                          </button>
+                        </div>
+                      )}
                       
                       <div className="text-xs text-text-muted mt-2">
                         {new Date().toLocaleTimeString()}
@@ -314,9 +392,13 @@ export default function MultiAgentChat() {
         ) : (
           /* Flow Tab */
           <FlowTab className="flex-1" />
-        )}
+            )}
+          </div>
+        </div>
+        
+        {/* Toast notification */}
+        <Toast message={toast.message} show={toast.show} />
       </div>
-    </div>
-  );
-}
+    );
+  }
 
