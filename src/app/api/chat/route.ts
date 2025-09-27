@@ -103,9 +103,11 @@ KNOWLEDGE BASE HIERARCHY INSTRUCTIONS:
 7. Make sure to cite that the information comes from Chris's knowledge base
 
 RESPONSE STRUCTURE:
-- Lead with knowledge base content
-- Organize it logically for the user
-- Provide actionable insights based on Chris's proven strategies`;
+- Use clear headings (##) to organize information
+- Use **bold** for key points and strategies
+- Use bullet points (-) for lists
+- Use > blockquotes for important tips
+- Make it visually appealing and easy to scan`;
     } else {
       // STEP 3 & 4: No knowledge base results - research fallback
       enhancedSystemPrompt = `${agent.systemPrompt}
@@ -118,10 +120,11 @@ KNOWLEDGE BASE HIERARCHY INSTRUCTIONS:
 5. Suggest related topics that ARE covered in the knowledge base
 
 RESPONSE STRUCTURE:
+- Use clear headings (##) to organize information
 - Start by acknowledging this isn't in Chris's knowledge base
-- Provide general information if helpful (clearly marked as web research)
-- Suggest related knowledge base topics they should ask about
-- End with encouragement to explore Chris's proven strategies`;
+- Use > blockquotes for disclaimers about web research
+- Use bullet points (-) for suggested topics
+- Use **bold** for emphasis on Chris's proven strategies`;
     }
 
     let result;
@@ -144,14 +147,14 @@ RESPONSE STRUCTURE:
     let sourcesText = '';
     
     if (knowledgeBaseFound && knowledgeBaseSources.length > 0) {
-      sourcesText = `\n\n📚 **Sources from Chris's Knowledge Base:**\n`;
+      sourcesText = `\n\n---\n\n## 📚 Sources from Chris's Knowledge Base\n\n`;
       knowledgeBaseSources.forEach((result, index) => {
         const relevance = Math.round(result.score * 100);
-        sourcesText += `${index + 1}. ${result.title} (${relevance}% match)\n`;
+        sourcesText += `**${index + 1}.** ${result.title} \`${relevance}% match\`\n\n`;
       });
-      sourcesText += `\n*This information comes from Chris's proven strategies and case studies.*`;
+      sourcesText += `> *This information comes from Chris's proven strategies and case studies.*`;
     } else {
-      sourcesText = `\n\n⚠️ *This topic isn't covered in Chris's knowledge base. The information above is from general research and may not reflect Chris's specific strategies.*`;
+      sourcesText = `\n\n---\n\n> ⚠️ **Note:** This topic isn't covered in Chris's knowledge base. The information above is from general research and may not reflect Chris's specific strategies.\n\n> 💡 **Tip:** Ask about topics like "product research," "viral strategies," or "case studies" to get Chris's proven methods!`;
     }
     
     // Return simple text response with user-friendly sources
