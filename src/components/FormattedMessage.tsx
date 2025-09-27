@@ -70,8 +70,10 @@ export default function FormattedMessage({
 
   return (
     <div
-      className={`group relative w-full rounded-2xl p-4 sm:p-5
-                   ${role === 'assistant' ? 'bg-zinc-900/70' : 'bg-zinc-900/40'}
+      className={`group relative w-full max-w-3xl rounded-2xl p-6
+                   ${role === 'user'
+                     ? 'bg-green-500/10 border border-green-400/20 text-zinc-100'
+                     : 'bg-zinc-900/70 text-zinc-100'}
                    shadow-md shadow-black/20 hover:shadow-lg hover:shadow-black/30
                    transition-shadow duration-200`}
     >
