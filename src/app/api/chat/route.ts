@@ -52,112 +52,142 @@ export async function POST(req: Request) {
       systemPromptLength: agent.systemPrompt.length
     });
 
-    // Check if this is a knowledge base related query
+    // HIERARCHY STEP 1: Always search knowledge base first for ANY query
     let knowledgeBaseResults = '';
+    let knowledgeBaseSources = [];
+    let knowledgeBaseFound = false;
     const latestMessage = messages[messages.length - 1];
+    
     if (latestMessage && latestMessage.role === 'user') {
-      const query = latestMessage.content.toLowerCase();
-      const isKnowledgeBaseQuery = query.includes('dropshipping') || 
-                                  query.includes('product') || 
-                                  query.includes('viral') || 
-                                  query.includes('case study') ||
-                                  query.includes('strategy') ||
-                                  query.includes('marketing') ||
-                                  query.includes('bsmfredo') ||
-                                  query.includes('ethan hayes') ||
-                                  query.includes('jordaninaforeign');
+      console.log('🔍 STEP 1: Searching knowledge base first for:', latestMessage.content);
       
-      if (isKnowledgeBaseQuery) {
-        console.log('🔍 Knowledge base query detected:', latestMessage.content);
-        try {
-          const { searchKnowledgeBase } = await import('@/lib/pinecone');
-          console.log('📚 Searching knowledge base...');
-          const results = await searchKnowledgeBase(latestMessage.content, undefined, 3);
-          console.log('📊 Found results:', results.length);
+      try {
+        const { searchKnowledgeBase } = await import('@/lib/pinecone');
+        const results = await searchKnowledgeBase(latestMessage.content, undefined, 5);
+        console.log('📊 Knowledge base search results:', results.length);
+        
+        if (results.length > 0) {
+          knowledgeBaseFound = true;
+          knowledgeBaseSources = results;
           
-          if (results.length > 0) {
-            knowledgeBaseResults = `\n\nKNOWLEDGE BASE SEARCH RESULTS for "${latestMessage.content}":\n`;
-            results.forEach((result, index) => {
-              knowledgeBaseResults += `${index + 1}. ${result.title} (${Math.round(result.score * 100)}% match)\n`;
-              knowledgeBaseResults += `   Category: ${result.category}\n`;
-              knowledgeBaseResults += `   Creator: Chris\n`;
-              knowledgeBaseResults += `   Content: ${result.content.substring(0, 200)}...\n\n`;
-            });
-            console.log('✅ Knowledge base results added to prompt');
-          } else {
-            console.log('❌ No knowledge base results found');
-          }
-        } catch (error) {
-          console.error('❌ Error searching knowledge base:', error);
+          knowledgeBaseResults = `\n\nKNOWLEDGE BASE SEARCH RESULTS for "${latestMessage.content}":\n`;
+          results.forEach((result, index) => {
+            knowledgeBaseResults += `${index + 1}. ${result.title} (${Math.round(result.score * 100)}% match)\n`;
+            knowledgeBaseResults += `   Category: ${result.category}\n`;
+            knowledgeBaseResults += `   Creator: Chris\n`;
+            knowledgeBaseResults += `   Content: ${result.content.substring(0, 300)}...\n\n`;
+          });
+          console.log('✅ Knowledge base results found and added to prompt');
+        } else {
+          console.log('❌ No knowledge base results found - will need to research');
         }
+      } catch (error) {
+        console.error('❌ Error searching knowledge base:', error);
       }
     }
 
-    // Enhanced system prompt with knowledge base results
-    const enhancedSystemPrompt = `${agent.systemPrompt}${knowledgeBaseResults}
+    // Enhanced system prompt based on hierarchy
+    let enhancedSystemPrompt;
+    
+    if (knowledgeBaseFound) {
+      // STEP 2: AI organizes and presents knowledge base content
+      enhancedSystemPrompt = `${agent.systemPrompt}${knowledgeBaseResults}
 
-You have access to a comprehensive knowledge base of dropshipping strategies, case studies, and content from Chris. Use this information to provide specific, actionable advice based on real examples and proven strategies. Always refer to the creator as "Chris" when referencing any strategies, case studies, or content from the knowledge base.`;
+KNOWLEDGE BASE HIERARCHY INSTRUCTIONS:
+1. You have found relevant information in Chris's knowledge base above
+2. Use this knowledge base content as your PRIMARY source
+3. Organize and present this information in a clear, actionable way
+4. Always reference "Chris" as the creator of this knowledge
+5. If the knowledge base covers the question well, focus entirely on that content
+6. If there are gaps, you may supplement with general knowledge but prioritize the KB content
+7. Make sure to cite that the information comes from Chris's knowledge base
+
+RESPONSE STRUCTURE:
+- Lead with knowledge base content
+- Organize it logically for the user
+- Provide actionable insights based on Chris's proven strategies`;
+    } else {
+      // STEP 3 & 4: No knowledge base results - research fallback
+      enhancedSystemPrompt = `${agent.systemPrompt}
+
+KNOWLEDGE BASE HIERARCHY INSTRUCTIONS:
+1. No relevant information found in Chris's knowledge base for this query
+2. You should inform the user that this specific topic is not in the knowledge base
+3. You may provide general information but must clearly indicate it's from web research
+4. Always mention that for Chris's specific strategies and proven methods, they should ask about topics covered in the knowledge base
+5. Suggest related topics that ARE covered in the knowledge base
+
+RESPONSE STRUCTURE:
+- Start by acknowledging this isn't in Chris's knowledge base
+- Provide general information if helpful (clearly marked as web research)
+- Suggest related knowledge base topics they should ask about
+- End with encouragement to explore Chris's proven strategies`;
+    }
 
     let result;
     
-    // If we have knowledge base results, use non-streaming to include sources
-    if (knowledgeBaseResults && latestMessage) {
-      console.log('🔧 Using non-streaming approach for sources...');
+    // Always use non-streaming to ensure sources are included
+    console.log('🔧 Using non-streaming approach for hierarchy system...');
+    
+    result = await streamText({
+      model,
+      messages,
+      system: enhancedSystemPrompt,
+      maxOutputTokens: 1500, // Increased for more comprehensive responses
+    });
+    
+    // Get the full text response
+    const fullText = await result.text;
+    console.log('📝 Got full text response');
+    
+    // Prepare sources data based on hierarchy
+    let sourcesData = '';
+    let sourceType = 'none';
+    
+    if (knowledgeBaseFound && knowledgeBaseSources.length > 0) {
+      // Knowledge base sources
+      sourceType = 'knowledge_base';
+      const sources = knowledgeBaseSources.map(result => ({
+        title: result.title,
+        content: result.content,
+        category: result.category,
+        creator: 'Chris',
+        relevance: Math.round(result.score * 100) + '%',
+        score: result.score,
+        hasVideo: !!result.video_url,
+        videoUrl: result.video_url,
+        sourceType: 'knowledge_base'
+      }));
       
-      result = await streamText({
-        model,
-        messages,
-        system: enhancedSystemPrompt,
-        maxOutputTokens: 1000,
-      });
-      
-      // Get the full text response
-      const fullText = await result.text;
-      console.log('📝 Got full text response');
-      
-      // Get the sources data
-      let sourcesData = '';
-      try {
-        const { searchKnowledgeBase } = await import('@/lib/pinecone');
-        const results = await searchKnowledgeBase(latestMessage.content, undefined, 3);
-        
-        if (results.length > 0) {
-          const sources = results.map(result => ({
-            title: result.title,
-            content: result.content,
-            category: result.category,
-            creator: 'Chris', // Always show as Chris
-            relevance: Math.round(result.score * 100) + '%',
-            score: result.score,
-            hasVideo: !!result.video_url,
-            videoUrl: result.video_url
-          }));
-          
-          sourcesData = `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ sources, searchQuery: latestMessage.content })} -->`;
-          console.log('✅ Sources data prepared:', sources.length, 'sources');
-        }
-      } catch (error) {
-        console.error('❌ Error preparing sources data:', error);
-      }
-      
-      // Return a simple text response with sources
-      const responseWithSources = fullText + sourcesData;
-      console.log('📤 Returning response with sources data');
-      
-      return new Response(responseWithSources, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-        },
-      });
+      sourcesData = `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ 
+        sources, 
+        searchQuery: latestMessage.content,
+        sourceType: 'knowledge_base',
+        hierarchy: 'Found in Chris\'s knowledge base'
+      })} -->`;
+      console.log('✅ Knowledge base sources prepared:', sources.length, 'sources');
     } else {
-      // Use normal streaming for non-knowledge base queries
-      result = await streamText({
-        model,
-        messages,
-        system: enhancedSystemPrompt,
-        maxOutputTokens: 1000,
-      });
+      // Web research fallback
+      sourceType = 'web_research';
+      sourcesData = `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ 
+        sources: [], 
+        searchQuery: latestMessage.content,
+        sourceType: 'web_research',
+        hierarchy: 'Not found in knowledge base - using web research',
+        disclaimer: 'This information is not from Chris\'s knowledge base but may be helpful'
+      })} -->`;
+      console.log('⚠️ No knowledge base results - using web research disclaimer');
     }
+    
+    // Return response with appropriate sources
+    const responseWithSources = fullText + sourcesData;
+    console.log('📤 Returning response with hierarchy sources');
+    
+    return new Response(responseWithSources, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+      },
+    });
 
     console.log('streamText result:', {
       type: typeof result,

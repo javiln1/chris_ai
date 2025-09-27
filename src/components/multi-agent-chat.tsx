@@ -248,30 +248,48 @@ export default function MultiAgentChat() {
               // Try to parse sources from the message content
               try {
                 console.log('🔍 Parsing message content for sources...');
-                console.log('Message content:', message.content.substring(0, 200) + '...');
+                console.log('Full message object:', message);
+                console.log('Message content length:', message.content?.length || 0);
+                console.log('Message content preview:', message.content?.substring(0, 200) + '...');
+                console.log('Message content end:', message.content?.substring(-200));
+                
+                // Check if content exists
+                if (!message.content) {
+                  console.log('❌ No message content to parse');
+                  cleanContent = '';
+                  return;
+                }
                 
                 // Look for sources data in HTML comment format
                 const sourcesMatch = message.content.match(/<!-- SOURCES_DATA: ({[\s\S]*?}) -->/);
-                console.log('Sources match result:', sourcesMatch);
+                console.log('Sources match result:', sourcesMatch ? 'FOUND' : 'NOT FOUND');
                 
                 if (sourcesMatch) {
                   console.log('✅ Found sources data, parsing JSON...');
+                  console.log('JSON string length:', sourcesMatch[1].length);
+                  console.log('JSON preview:', sourcesMatch[1].substring(0, 100) + '...');
+                  
                   const sourcesData = JSON.parse(sourcesMatch[1]);
                   sources = sourcesData.sources || [];
                   searchQuery = sourcesData.searchQuery || '';
                   console.log('📊 Parsed sources:', sources.length, 'sources');
                   console.log('🔍 Search query:', searchQuery);
+                  console.log('📋 Full sources data:', sourcesData);
                 } else {
                   console.log('❌ No sources data found in message');
+                  console.log('Content contains SOURCES_DATA:', message.content.includes('SOURCES_DATA'));
+                  console.log('Content contains HTML comments:', message.content.includes('<!--'));
                 }
                 
                 // Clean content by removing HTML comments
                 cleanContent = message.content
-                  .replace(/<!-- SOURCES_DATA: {.*?} -->/g, '')
+                  .replace(/<!-- SOURCES_DATA: {[\s\S]*?} -->/g, '')
                   .trim();
                 console.log('🧹 Cleaned content length:', cleanContent.length);
+                console.log('🧹 Cleaned content preview:', cleanContent.substring(0, 100) + '...');
               } catch (error) {
                 console.error('❌ Error parsing sources from message:', error);
+                console.error('Error details:', error.stack);
                 cleanContent = message.content;
               }
               
