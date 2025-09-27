@@ -105,6 +105,36 @@ Remember to:
       temperature: agent.temperature || 0.7,
       maxTokens: agent.maxTokens || 1000,
       tools: Object.keys(tools).length > 0 ? tools : undefined,
+      onFinish: async (result) => {
+        // Extract sources from tool calls if any
+        let sources = [];
+        let searchQuery = '';
+        
+        if (result.toolCalls && result.toolCalls.length > 0) {
+          for (const toolCall of result.toolCalls) {
+            if (toolCall.toolName === 'searchKnowledgeBase' || 
+                toolCall.toolName === 'searchCaseStudies' || 
+                toolCall.toolName === 'searchCreatorContent') {
+              
+              searchQuery = toolCall.args.query || searchQuery;
+              
+              try {
+                const toolResult = JSON.parse(toolCall.result);
+                if (toolResult.success && toolResult.results) {
+                  sources = sources.concat(toolResult.results);
+                }
+              } catch (error) {
+                console.error('Error parsing tool result:', error);
+              }
+            }
+          }
+        }
+        
+        // Append sources data to the response if found
+        if (sources.length > 0) {
+          result.text += `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ sources, searchQuery })} -->`;
+        }
+      },
     });
 
     return result.toDataStreamResponse();

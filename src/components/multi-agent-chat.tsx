@@ -8,6 +8,7 @@ import { Message } from '@/components/ai-elements/message';
 import { Branch } from '@/components/ai-elements/branch';
 import FlowTab from '@/components/flow-tab';
 import AgentSelector from '@/components/agent-selector';
+import { SourcesDropdown } from '@/components/sources-dropdown';
 import { getAgentById, detectAgentType } from '@/lib/agents';
 
 export default function MultiAgentChat() {
@@ -176,39 +177,39 @@ export default function MultiAgentChat() {
             <div className="space-y-3">
               <h4 className="text-text font-semibold mb-3">Quick Actions</h4>
               <button 
-                onClick={() => handleSendMessage("Research the latest trends in AI")}
+                onClick={() => handleSendMessage("How do I find winning dropshipping products?")}
                 className="w-full text-left bg-custom-dark border border-border rounded-lg p-3 hover:border-gray-700 transition-all duration-200"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 text-blue-400">🔍</div>
-                  <span className="text-text">Research AI Trends</span>
+                  <div className="w-5 h-5 text-green-400">🛍️</div>
+                  <span className="text-text">Find Winning Products</span>
                 </div>
               </button>
               <button 
-                onClick={() => handleSendMessage("Write a Python function to calculate fibonacci")}
+                onClick={() => handleSendMessage("Show me successful case studies from Bsmfredo")}
                 className="w-full text-left bg-custom-dark border border-border rounded-lg p-3 hover:border-gray-700 transition-all duration-200"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 text-yellow-400">💻</div>
-                  <span className="text-text">Code Example</span>
+                  <div className="w-5 h-5 text-blue-400">📈</div>
+                  <span className="text-text">Bsmfredo Case Studies</span>
                 </div>
               </button>
               <button 
-                onClick={() => handleSendMessage("Help me brainstorm creative ideas for a startup")}
+                onClick={() => handleSendMessage("What are the best viral strategies for organic dropshipping?")}
                 className="w-full text-left bg-custom-dark border border-border rounded-lg p-3 hover:border-gray-700 transition-all duration-200"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 text-pink-400">🎨</div>
-                  <span className="text-text">Creative Brainstorm</span>
+                  <div className="w-5 h-5 text-red-400">🚀</div>
+                  <span className="text-text">Viral Strategies</span>
                 </div>
               </button>
               <button 
-                onClick={() => handleSendMessage("Analyze this data and show me patterns")}
+                onClick={() => handleSendMessage("Help me with TikTok organic marketing strategies")}
                 className="w-full text-left bg-custom-dark border border-border rounded-lg p-3 hover:border-gray-700 transition-all duration-200"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 text-purple-400">📊</div>
-                  <span className="text-text">Data Analysis</span>
+                  <div className="w-5 h-5 text-purple-400">📱</div>
+                  <span className="text-text">TikTok Marketing</span>
                 </div>
               </button>
             </div>
@@ -238,29 +239,67 @@ export default function MultiAgentChat() {
               </div>
             )}
             
-            {messages.map((message) => (
-              <Message key={message.id} from={message.role}>
-                <div className="flex items-start space-x-3">
-                  {/* Agent Indicator for Assistant Messages */}
-                  {message.role === 'assistant' && (
-                    <div 
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 mt-1"
-                      style={{ backgroundColor: currentAgent.color + '20' }}
-                    >
-                      {currentAgent.icon}
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <Response>
-                      {message.content}
-                    </Response>
-                    <div className="text-xs text-text-muted mt-2">
-                      {new Date().toLocaleTimeString()}
+            {messages.map((message) => {
+              // Extract sources from message if available
+              let sources = [];
+              let searchQuery = '';
+              let cleanContent = message.content;
+              
+              // Try to parse sources from the message content
+              try {
+                // Look for sources data in HTML comment format
+                const sourcesMatch = message.content.match(/<!-- SOURCES_DATA: ({.*?}) -->/);
+                if (sourcesMatch) {
+                  const sourcesData = JSON.parse(sourcesMatch[1]);
+                  sources = sourcesData.sources || [];
+                  searchQuery = sourcesData.searchQuery || '';
+                }
+                
+                // Clean content by removing HTML comments
+                cleanContent = message.content
+                  .replace(/<!-- SOURCES_DATA: {.*?} -->/g, '')
+                  .trim();
+              } catch (error) {
+                console.error('Error parsing sources from message:', error);
+                cleanContent = message.content;
+              }
+              
+              return (
+                <Message key={message.id} from={message.role}>
+                  <div className="flex items-start space-x-3">
+                    {/* Agent Indicator for Assistant Messages */}
+                    {message.role === 'assistant' && (
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 mt-1"
+                        style={{ backgroundColor: currentAgent.color + '20' }}
+                      >
+                        {currentAgent.icon}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <Response>
+                        {cleanContent}
+                      </Response>
+                      
+                      {/* Sources Dropdown for Assistant Messages */}
+                      {message.role === 'assistant' && sources.length > 0 && (
+                        <div className="mt-3">
+                          <SourcesDropdown 
+                            sources={sources}
+                            searchQuery={searchQuery || 'knowledge base search'}
+                            className="max-w-full"
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="text-xs text-text-muted mt-2">
+                        {new Date().toLocaleTimeString()}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Message>
-            ))}
+                </Message>
+              );
+            })}
             
             {isLoading && (
               <Message from="assistant">

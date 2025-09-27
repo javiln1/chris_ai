@@ -40,11 +40,13 @@ export const knowledgeBaseTools = {
           message: `Found ${results.length} relevant documents`,
           results: results.map(result => ({
             title: result.title,
+            content: result.content,
             category: result.category,
             creator: result.creator,
             relevance: Math.round(result.score * 100) + '%',
             hasVideo: !!result.video_url,
-            videoUrl: result.video_url
+            videoUrl: result.video_url,
+            score: result.score
           }))
         };
       } catch (error) {
@@ -91,11 +93,13 @@ export const knowledgeBaseTools = {
           message: `Found ${results.length} relevant case studies`,
           results: results.map(result => ({
             title: result.title,
+            content: result.content,
             category: result.category,
             creator: result.creator,
             relevance: Math.round(result.score * 100) + '%',
             hasVideo: !!result.video_url,
-            videoUrl: result.video_url
+            videoUrl: result.video_url,
+            score: result.score
           }))
         };
       } catch (error) {
@@ -146,11 +150,13 @@ export const knowledgeBaseTools = {
           message: `Found ${results.length} relevant documents from ${params.creator}`,
           results: results.map(result => ({
             title: result.title,
+            content: result.content,
             category: result.category,
             creator: result.creator,
             relevance: Math.round(result.score * 100) + '%',
             hasVideo: !!result.video_url,
-            videoUrl: result.video_url
+            videoUrl: result.video_url,
+            score: result.score
           }))
         };
       } catch (error) {
