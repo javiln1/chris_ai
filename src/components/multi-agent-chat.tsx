@@ -3,144 +3,16 @@
 import { useChat } from 'ai';
 import { useState } from 'react';
 import Image from 'next/image';
-import { Message } from '@/components/ai-elements/message';
-import { Branch } from '@/components/ai-elements/branch';
 import FlowTab from '@/components/flow-tab';
 import { getAgentById } from '@/lib/agents';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import FormattedMessage from './FormattedMessage';
 
-// STEP 3: Enhanced message parser function
-const parseAndFormatMessage = (content: string) => {
-  // Check if content contains SOURCES_DATA
-  const sourcesMatch = content.match(/<!-- SOURCES_DATA: (.*?) -->/);
-  
-  if (sourcesMatch) {
-    try {
-      // Extract the main content (before sources)
-      const mainContent = content.replace(/<!-- SOURCES_DATA:.*?-->/s, '').trim();
-      
-      // Parse the sources data
-      const sourcesData = JSON.parse(sourcesMatch[1]);
-      
-      return {
-        mainContent,
-        sources: sourcesData.sources || [],
-        sourceType: sourcesData.sourceType || 'none',
-        searchQuery: sourcesData.searchQuery || '',
-        hierarchy: sourcesData.hierarchy || ''
-      };
-    } catch (error) {
-      console.error('Error parsing sources:', error);
-      return { mainContent: content, sources: [] };
-    }
-  }
-  
-  return { mainContent: content, sources: [] };
-};
 
-// STEP 4: Copy to clipboard function
-const copyToClipboard = async (text: string, showToast: (message: string) => void) => {
-  try {
-    // Remove sources data from the text if present
-    const cleanText = text.replace(/<!-- SOURCES_DATA:.*?-->/s, '').trim();
-    await navigator.clipboard.writeText(cleanText);
-    showToast('Copied to clipboard!');
-  } catch (err) {
-    console.error('Failed to copy:', err);
-    showToast('Failed to copy');
-  }
-};
 
-// STEP 5: Toast notification component
-const Toast = ({ message, show }: { message: string; show: boolean }) => {
-  if (!show) return null;
-  
-  return (
-    <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2">
-      <div className="bg-lime-500 text-black px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-        <span className="font-medium">{message}</span>
-      </div>
-    </div>
-  );
-};
-
-// STEP 6: Formatted message component with markdown support
-const FormattedMessage = ({ content, role, onCopy }: { content: string; role: string; onCopy: () => void }) => {
-  const [showCopyButton, setShowCopyButton] = useState(false);
-  
-  if (role === 'user') {
-    // User messages remain plain text
-    return (
-      <p className="text-base leading-relaxed text-text whitespace-pre-wrap">
-        {content}
-      </p>
-    );
-  }
-  
-  // Assistant messages with markdown
-  return (
-    <div 
-      className="relative group"
-      onMouseEnter={() => setShowCopyButton(true)}
-      onMouseLeave={() => setShowCopyButton(false)}
-    >
-      {/* Copy button */}
-      <button
-        onClick={onCopy}
-        className={`absolute top-0 right-0 p-2 bg-custom-dark-secondary hover:bg-custom-dark-tertiary rounded-lg transition-all ${
-          showCopyButton ? 'opacity-100' : 'opacity-0'
-        }`}
-        aria-label="Copy message"
-      >
-        <svg className="w-4 h-4 text-text-secondary hover:text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      </button>
-      
-      {/* Formatted markdown content */}
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        className="prose prose-invert prose-lg max-w-none
-          prose-headings:text-lime-400 prose-headings:font-bold
-          prose-h1:text-3xl prose-h1:mb-4 prose-h1:mt-6
-          prose-h2:text-2xl prose-h2:mb-3 prose-h2:mt-5
-          prose-h3:text-xl prose-h3:mb-2 prose-h3:mt-4
-          prose-p:text-gray-200 prose-p:leading-relaxed prose-p:mb-4
-          prose-strong:text-lime-300 prose-strong:font-semibold
-          prose-em:text-gray-300
-          prose-ul:text-gray-200 prose-ul:my-4 prose-ul:space-y-2
-          prose-ol:text-gray-200 prose-ol:my-4 prose-ol:space-y-2
-          prose-li:text-gray-200 prose-li:leading-relaxed
-          prose-li:marker:text-lime-400
-          prose-blockquote:text-gray-300 prose-blockquote:border-l-4 prose-blockquote:border-lime-400 prose-blockquote:pl-4 prose-blockquote:italic
-          prose-code:text-lime-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-          prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-700 prose-pre:rounded-lg
-          prose-a:text-lime-400 prose-a:no-underline hover:prose-a:text-lime-300 hover:prose-a:underline
-          prose-hr:border-gray-700"
-      >
-        {content}
-      </ReactMarkdown>
-    </div>
-  );
-};
 
 export default function MultiAgentChat() {
   const [activeTab, setActiveTab] = useState<'chat' | 'flow'>('chat');
   
-  // Add toast state
-  const [toast, setToast] = useState({ show: false, message: '' });
-  
-  // Toast helper function
-  const showToast = (message: string) => {
-    setToast({ show: true, message });
-    setTimeout(() => setToast({ show: false, message: '' }), 3000);
-  };
   
   // Initialize with a welcome message
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
@@ -257,163 +129,14 @@ export default function MultiAgentChat() {
               </div>
             )}
             
-                {messages.map((message, index) => {
-              const parsedContent = parseAndFormatMessage(message.content);
-              
-              return (
-                <Message key={message.id} from={message.role}>
-                  <div className="flex items-start space-x-3">
-                    {/* Agent Indicator for Assistant Messages */}
-                    {message.role === 'assistant' && (
-                      <div 
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 mt-1"
-                        style={{ backgroundColor: currentAgent.color + '20' }}
-                      >
-                        {currentAgent.icon}
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      {/* Formatted message content with markdown */}
-                      {message.role === 'assistant' ? (
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            h1: ({children}) => (
-                              <h1 style={{
-                                fontSize: '2rem',
-                                fontWeight: 'bold',
-                                color: '#00ff00',
-                                marginBottom: '1rem',
-                                marginTop: '1.5rem'
-                              }}>{children}</h1>
-                            ),
-                            h2: ({children}) => (
-                              <h2 style={{
-                                fontSize: '1.5rem',
-                                fontWeight: 'bold',
-                                color: '#00ff00',
-                                marginBottom: '0.75rem',
-                                marginTop: '1.25rem'
-                              }}>{children}</h2>
-                            ),
-                            h3: ({children}) => (
-                              <h3 style={{
-                                fontSize: '1.25rem',
-                                fontWeight: 'bold',
-                                color: '#00ff88',
-                                marginBottom: '0.5rem',
-                                marginTop: '1rem'
-                              }}>{children}</h3>
-                            ),
-                            p: ({children}) => (
-                              <p style={{
-                                color: '#EAEAEA',
-                                lineHeight: '1.6',
-                                marginBottom: '1rem'
-                              }}>{children}</p>
-                            ),
-                            strong: ({children}) => (
-                              <strong style={{
-                                color: '#00ff88',
-                                fontWeight: 'bold'
-                              }}>{children}</strong>
-                            ),
-                            em: ({children}) => (
-                              <em style={{
-                                color: '#B3B3B3',
-                                fontStyle: 'italic'
-                              }}>{children}</em>
-                            ),
-                            ul: ({children}) => (
-                              <ul style={{
-                                color: '#EAEAEA',
-                                margin: '1rem 0',
-                                paddingLeft: '1.5rem'
-                              }}>{children}</ul>
-                            ),
-                            ol: ({children}) => (
-                              <ol style={{
-                                color: '#EAEAEA',
-                                margin: '1rem 0',
-                                paddingLeft: '1.5rem'
-                              }}>{children}</ol>
-                            ),
-                            li: ({children}) => (
-                              <li style={{
-                                color: '#EAEAEA',
-                                lineHeight: '1.6',
-                                marginBottom: '0.5rem'
-                              }}>{children}</li>
-                            ),
-                            blockquote: ({children}) => (
-                              <blockquote style={{
-                                color: '#B3B3B3',
-                                borderLeft: '4px solid #00ff00',
-                                paddingLeft: '1rem',
-                                fontStyle: 'italic',
-                                margin: '1rem 0'
-                              }}>{children}</blockquote>
-                            ),
-                            code: ({children}) => (
-                              <code style={{
-                                color: '#00ff88',
-                                backgroundColor: '#222222',
-                                padding: '0.125rem 0.25rem',
-                                borderRadius: '0.25rem',
-                                fontSize: '0.875rem'
-                              }}>{children}</code>
-                            ),
-                            a: ({children, href}) => (
-                              <a href={href} style={{
-                                color: '#00ff00',
-                                textDecoration: 'none'
-                              }} onMouseEnter={(e) => e.target.style.textDecoration = 'underline'} 
-                                 onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
-                                {children}
-                              </a>
-                            ),
-                            hr: () => (
-                              <hr style={{
-                                border: '1px solid #404040',
-                                margin: '2rem 0'
-                              }} />
-                            )
-                          }}
-                        >
-                          {parsedContent.mainContent}
-                        </ReactMarkdown>
-                      ) : (
-                        <p className="text-base leading-relaxed text-text whitespace-pre-wrap">
-                          {parsedContent.mainContent}
-                        </p>
-                      )}
-                      
-                      {/* Always-visible copy button for assistant messages */}
-                      {message.role === 'assistant' && (
-                        <div className="mt-4 pt-3 border-t border-gray-800 flex items-center justify-between">
-                          <span className="text-xs text-text-secondary">
-                            Response from {currentAgent.name}
-                          </span>
-                          <button
-                            onClick={() => copyToClipboard(message.content, showToast)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-custom-dark-secondary hover:bg-custom-dark-tertiary rounded-lg transition-colors group"
-                          >
-                            <svg className="w-4 h-4 text-text-secondary group-hover:text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                            <span className="text-xs text-text-secondary group-hover:text-lime-400">Copy</span>
-                          </button>
-                        </div>
-                      )}
-                      
-                      <div className="text-xs text-text-muted mt-2">
-                        {new Date().toLocaleTimeString()}
-                      </div>
-                    </div>
+                {messages.map((message, index) => (
+                  <div key={message.id} className="mb-6">
+                    <FormattedMessage 
+                      role={message.role} 
+                      content={message.content} 
+                    />
                   </div>
-                </Message>
-              );
-            })}
+                ))}
             
             {isLoading && (
               <Message from="assistant">
@@ -465,8 +188,6 @@ export default function MultiAgentChat() {
           </div>
         </div>
         
-        {/* Toast notification */}
-        <Toast message={toast.message} show={toast.show} />
       </div>
     );
   }
