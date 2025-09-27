@@ -140,48 +140,23 @@ RESPONSE STRUCTURE:
     const fullText = await result.text;
     console.log('📝 Got full text response');
     
-    // Prepare sources data based on hierarchy
-    let sourcesData = '';
-    let sourceType = 'none';
+    // Add simple, user-friendly sources at the end of the response
+    let sourcesText = '';
     
     if (knowledgeBaseFound && knowledgeBaseSources.length > 0) {
-      // Knowledge base sources
-      sourceType = 'knowledge_base';
-      const sources = knowledgeBaseSources.map(result => ({
-        title: result.title,
-        content: result.content,
-        category: result.category,
-        creator: 'Chris',
-        relevance: Math.round(result.score * 100) + '%',
-        score: result.score,
-        hasVideo: !!result.video_url,
-        videoUrl: result.video_url,
-        sourceType: 'knowledge_base'
-      }));
-      
-      sourcesData = `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ 
-        sources, 
-        searchQuery: latestMessage.content,
-        sourceType: 'knowledge_base',
-        hierarchy: 'Found in Chris\'s knowledge base'
-      })} -->`;
-      console.log('✅ Knowledge base sources prepared:', sources.length, 'sources');
+      sourcesText = `\n\n📚 **Sources from Chris's Knowledge Base:**\n`;
+      knowledgeBaseSources.forEach((result, index) => {
+        const relevance = Math.round(result.score * 100);
+        sourcesText += `${index + 1}. ${result.title} (${relevance}% match)\n`;
+      });
+      sourcesText += `\n*This information comes from Chris's proven strategies and case studies.*`;
     } else {
-      // Web research fallback
-      sourceType = 'web_research';
-      sourcesData = `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ 
-        sources: [], 
-        searchQuery: latestMessage.content,
-        sourceType: 'web_research',
-        hierarchy: 'Not found in knowledge base - using web research',
-        disclaimer: 'This information is not from Chris\'s knowledge base but may be helpful'
-      })} -->`;
-      console.log('⚠️ No knowledge base results - using web research disclaimer');
+      sourcesText = `\n\n⚠️ *This topic isn't covered in Chris's knowledge base. The information above is from general research and may not reflect Chris's specific strategies.*`;
     }
     
-    // Return response with appropriate sources
-    const responseWithSources = fullText + sourcesData;
-    console.log('📤 Returning response with hierarchy sources');
+    // Return simple text response with user-friendly sources
+    const responseWithSources = fullText + sourcesText;
+    console.log('📤 Returning response with simple sources');
     
     return new Response(responseWithSources, {
       headers: {
