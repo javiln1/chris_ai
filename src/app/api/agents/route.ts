@@ -158,9 +158,13 @@ Remember to:
       tools: Object.keys(tools).length > 0 ? tools : undefined,
     });
 
-    // If we have knowledge base results, create a custom streaming response
+    // If we have knowledge base results, use a simpler non-streaming approach
     if (knowledgeBaseResults && latestMessage) {
-      console.log('🔧 Creating custom streaming response with sources...');
+      console.log('🔧 Using non-streaming approach for sources...');
+      
+      // Get the full text response
+      const fullText = await result.text;
+      console.log('📝 Got full text response');
       
       // Get the sources data
       let sourcesData = '';
@@ -187,58 +191,13 @@ Remember to:
         console.error('❌ Error preparing sources data:', error);
       }
       
-      // Create a custom streaming response that appends sources data
-      const encoder = new TextEncoder();
+      // Return a simple text response with sources
+      const responseWithSources = fullText + sourcesData;
+      console.log('📤 Returning response with sources data');
       
-      const customStream = new ReadableStream({
-        async start(controller) {
-          try {
-            // Get the text stream from the result
-            let stream;
-            if (typeof result.toTextStreamResponse === 'function') {
-              stream = result.toTextStreamResponse().body;
-            } else if (typeof result.toDataStreamResponse === 'function') {
-              stream = result.toDataStreamResponse().body;
-            } else {
-              // Fallback: get the full text and stream it
-              const fullText = await result.text;
-              controller.enqueue(encoder.encode(fullText));
-              if (sourcesData) {
-                controller.enqueue(encoder.encode(sourcesData));
-              }
-              controller.close();
-              return;
-            }
-            
-            if (stream) {
-              const reader = stream.getReader();
-              
-              while (true) {
-                const { done, value } = await reader.read();
-                
-                if (done) {
-                  // Append sources data at the end
-                  if (sourcesData) {
-                    controller.enqueue(encoder.encode(sourcesData));
-                  }
-                  controller.close();
-                  break;
-                }
-                
-                controller.enqueue(value);
-              }
-            }
-          } catch (error) {
-            console.error('❌ Error in custom stream:', error);
-            controller.error(error);
-          }
-        }
-      });
-      
-      return new Response(customStream, {
+      return new Response(responseWithSources, {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
-          'Transfer-Encoding': 'chunked',
         },
       });
     }

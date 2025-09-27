@@ -52,12 +52,112 @@ export async function POST(req: Request) {
       systemPromptLength: agent.systemPrompt.length
     });
 
-    const result = await streamText({
-      model,
-      messages,
-      system: agent.systemPrompt,
-      maxOutputTokens: 1000, // AI SDK v5 uses maxOutputTokens instead of maxTokens
-    });
+    // Check if this is a knowledge base related query
+    let knowledgeBaseResults = '';
+    const latestMessage = messages[messages.length - 1];
+    if (latestMessage && latestMessage.role === 'user') {
+      const query = latestMessage.content.toLowerCase();
+      const isKnowledgeBaseQuery = query.includes('dropshipping') || 
+                                  query.includes('product') || 
+                                  query.includes('viral') || 
+                                  query.includes('case study') ||
+                                  query.includes('strategy') ||
+                                  query.includes('marketing') ||
+                                  query.includes('bsmfredo') ||
+                                  query.includes('ethan hayes') ||
+                                  query.includes('jordaninaforeign');
+      
+      if (isKnowledgeBaseQuery) {
+        console.log('🔍 Knowledge base query detected:', latestMessage.content);
+        try {
+          const { searchKnowledgeBase } = await import('@/lib/pinecone');
+          console.log('📚 Searching knowledge base...');
+          const results = await searchKnowledgeBase(latestMessage.content, undefined, 3);
+          console.log('📊 Found results:', results.length);
+          
+          if (results.length > 0) {
+            knowledgeBaseResults = `\n\nKNOWLEDGE BASE SEARCH RESULTS for "${latestMessage.content}":\n`;
+            results.forEach((result, index) => {
+              knowledgeBaseResults += `${index + 1}. ${result.title} (${Math.round(result.score * 100)}% match)\n`;
+              knowledgeBaseResults += `   Category: ${result.category}\n`;
+              knowledgeBaseResults += `   Creator: ${result.creator || 'Unknown'}\n`;
+              knowledgeBaseResults += `   Content: ${result.content.substring(0, 200)}...\n\n`;
+            });
+            console.log('✅ Knowledge base results added to prompt');
+          } else {
+            console.log('❌ No knowledge base results found');
+          }
+        } catch (error) {
+          console.error('❌ Error searching knowledge base:', error);
+        }
+      }
+    }
+
+    // Enhanced system prompt with knowledge base results
+    const enhancedSystemPrompt = `${agent.systemPrompt}${knowledgeBaseResults}
+
+You have access to a comprehensive knowledge base of dropshipping strategies, case studies, and creator content. Use this information to provide specific, actionable advice based on real examples and proven strategies.`;
+
+    let result;
+    
+    // If we have knowledge base results, use non-streaming to include sources
+    if (knowledgeBaseResults && latestMessage) {
+      console.log('🔧 Using non-streaming approach for sources...');
+      
+      result = await streamText({
+        model,
+        messages,
+        system: enhancedSystemPrompt,
+        maxOutputTokens: 1000,
+      });
+      
+      // Get the full text response
+      const fullText = await result.text;
+      console.log('📝 Got full text response');
+      
+      // Get the sources data
+      let sourcesData = '';
+      try {
+        const { searchKnowledgeBase } = await import('@/lib/pinecone');
+        const results = await searchKnowledgeBase(latestMessage.content, undefined, 3);
+        
+        if (results.length > 0) {
+          const sources = results.map(result => ({
+            title: result.title,
+            content: result.content,
+            category: result.category,
+            creator: result.creator,
+            relevance: Math.round(result.score * 100) + '%',
+            score: result.score,
+            hasVideo: !!result.video_url,
+            videoUrl: result.video_url
+          }));
+          
+          sourcesData = `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ sources, searchQuery: latestMessage.content })} -->`;
+          console.log('✅ Sources data prepared:', sources.length, 'sources');
+        }
+      } catch (error) {
+        console.error('❌ Error preparing sources data:', error);
+      }
+      
+      // Return a simple text response with sources
+      const responseWithSources = fullText + sourcesData;
+      console.log('📤 Returning response with sources data');
+      
+      return new Response(responseWithSources, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+      });
+    } else {
+      // Use normal streaming for non-knowledge base queries
+      result = await streamText({
+        model,
+        messages,
+        system: enhancedSystemPrompt,
+        maxOutputTokens: 1000,
+      });
+    }
 
     console.log('streamText result:', {
       type: typeof result,

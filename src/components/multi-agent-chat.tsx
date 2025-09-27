@@ -19,12 +19,12 @@ export default function MultiAgentChat() {
   
   // Initialize with a welcome message
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
-    api: '/api/agents',
+    api: '/api/chat',
     initialMessages: [
       {
         id: '1',
         role: 'assistant',
-        content: 'Hello! I\'m your GPC AI assistant with specialized agents. How can I help you today?',
+        content: 'Hello! I\'m your GPC AI assistant with access to your dropshipping knowledge base. How can I help you today?',
       },
     ],
     onError: (error) => {
