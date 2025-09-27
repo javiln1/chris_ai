@@ -41,6 +41,15 @@ module.exports = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        // Custom colors
+        'custom-dark': 'var(--custom-dark)',
+        'custom-dark-secondary': 'var(--custom-dark-secondary)',
+        'custom-dark-tertiary': 'var(--custom-dark-tertiary)',
+        'text': 'var(--text)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-muted': 'var(--text-muted)',
+        'text-accent': 'var(--text-accent)',
+        'border-gray-700': 'var(--border-gray-700)',
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -49,7 +58,9 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 }
 
 
