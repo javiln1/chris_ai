@@ -70,7 +70,10 @@ export default function FormattedMessage({
 
   return (
     <div
-      className={`group relative w-full rounded-2xl border p-4 sm:p-5 bg-zinc-900/60 border-zinc-800`}
+      className={`group relative w-full rounded-2xl p-4 sm:p-5
+                   ${role === 'assistant' ? 'bg-zinc-900/70' : 'bg-zinc-900/40'}
+                   shadow-[0_1px_0_0_rgba(255,255,255,0.04),0_12px_30px_-12px_rgba(0,0,0,0.6)]
+                   transition-shadow duration-200 hover:shadow-[0_1px_0_0_rgba(255,255,255,0.06),0_18px_36px_-12px_rgba(0,0,0,0.75)]`}
     >
       {/* Copy */}
       {/* Copy button container */}
@@ -80,7 +83,7 @@ export default function FormattedMessage({
           aria-label="Copy message"
           title="Copy"
           className="inline-flex h-8 w-8 items-center justify-center rounded-md
-                     bg-zinc-800/70 backdrop-blur-sm ring-1 ring-inset ring-zinc-700/60
+                     bg-zinc-800/70 backdrop-blur-sm
                      opacity-0 group-hover:opacity-100 focus:opacity-100
                      hover:bg-zinc-800 transition-opacity duration-150"
         >
@@ -98,7 +101,7 @@ export default function FormattedMessage({
             aria-live="polite"
             className="pointer-events-none absolute -right-1 bottom-9 select-none
                        rounded-md px-2 py-0.5 text-[11px] font-medium
-                       text-zinc-100 bg-zinc-800/90 ring-1 ring-zinc-700/60
+                       text-zinc-100 bg-zinc-800/90
                        shadow-[0_8px_20px_-10px_rgba(0,0,0,0.8)]
                        animate-float-fade"
           >
@@ -180,14 +183,9 @@ export default function FormattedMessage({
           code({ inline, className, children }) {
             const match = /language-(\w+)/.exec(className || "");
             return !inline && match ? (
-              <SyntaxHighlighter
-                style={atomOneDark}
-                language={match[1]}
-                PreTag="div"
-                customStyle={{ borderRadius: 14, marginTop: 8, marginBottom: 12 }}
-              >
+              <pre className="overflow-auto rounded-xl bg-zinc-900 p-3 text-zinc-100 text-sm my-3">
                 {String(children).replace(/\n$/, "")}
-              </SyntaxHighlighter>
+              </pre>
             ) : (
               <code className="px-1 py-0.5 rounded bg-zinc-800 text-zinc-100">
                 {children}
@@ -200,7 +198,7 @@ export default function FormattedMessage({
       </ReactMarkdown>
 
       {Array.isArray(sources) && sources.length > 0 && (
-        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+        <div className="mt-4 pt-3 border-t border-zinc-800/60">
           <div className="text-sm font-medium text-zinc-300 mb-2">
             📚 Sources from the Knowledge Base
           </div>
