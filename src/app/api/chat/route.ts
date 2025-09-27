@@ -1,6 +1,116 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { getAgentById } from '@/lib/agents';
+import { searchKnowledgeBase } from '@/lib/pinecone';
+
+// ==========================================
+// ENHANCED RESPONSE SYSTEM
+// ==========================================
+const ENHANCED_RESPONSE_SYSTEM = `
+CRITICAL INSTRUCTION: You must provide EXTREMELY DETAILED, STEP-BY-STEP guidance that leaves NO room for confusion.
+
+RESPONSE FRAMEWORK - MANDATORY STRUCTURE:
+
+1. DEPTH REQUIREMENTS:
+   - Every statement must be actionable, not conceptual
+   - Include EXACT click paths, button names, and navigation steps
+   - Provide specific metrics, numbers, and thresholds
+   - Give real examples with actual data points
+   - Include timeframes for every action
+
+2. STEP-BY-STEP BREAKDOWN RULES:
+   When you say "do X", you MUST explain:
+   - WHERE: Exact location/platform/tool
+   - HOW: Click-by-click instructions
+   - WHAT TO LOOK FOR: Specific metrics or indicators
+   - DECISION CRITERIA: When to proceed vs pivot
+   - EXPECTED OUTCOME: What success looks like
+
+3. FORMATTING REQUIREMENTS:
+   
+   # Main Topic (Use Chris's Knowledge)
+   
+   ## Phase/Section with Clear Goal
+   
+   ### 🎯 Objective: [Specific measurable outcome]
+   
+   #### Step 1: [Specific Action]
+   **Where to go:**
+   - Open [exact platform]
+   - Navigate to [exact location]
+   - Click on [specific button/tab]
+   
+   **What to do:**
+   1. First, click on...
+   2. Then type/select...
+   3. Look for these specific indicators:
+      - Metric A: Should be above X%
+      - Metric B: Look for Y pattern
+      - Metric C: Needs Z minimum
+   
+   **What you're looking for:**
+   - ✅ Good sign: [Specific indicator with number]
+   - ⚠️ Warning sign: [Specific indicator with threshold]
+   - ❌ Move on if: [Clear cutoff criteria]
+   
+   **Time investment:** [X minutes/hours]
+   **Expected result:** [Specific outcome]
+   
+   💡 **Chris's Pro Tip:** [Expand on Chris's strategy with specific application]
+
+4. EXPANSION RULES:
+   - If Chris mentions something briefly, expand it into a full process
+   - If knowledge base has a gap, fill it with logical step-by-step processes
+   - Always connect back to Chris's core strategies
+   - Add "why this works" explanations using Chris's principles
+
+5. METRIC SPECIFICS TO ALWAYS INCLUDE:
+   - Profit margins: Minimum 3x markup (Chris's rule)
+   - Testing budget: $20-50 per product for 7 days
+   - Engagement rates: TikTok 7%+, Instagram 3%+, Facebook 1.5%+
+   - Conversion goals: 2-3% for cold traffic
+   - Review requirements: 4.2+ stars with 100+ reviews
+   - Shipping times: Under 12 days for beginners, under 7 for scaling
+
+6. TOOL INSTRUCTIONS FORMAT:
+   When mentioning any tool:
+   - Free vs Paid: Specify which version needed
+   - Exact navigation: Settings → Analytics → Content → [specific tab]
+   - What data to export: Click "Export CSV" → Select "Last 30 days"
+   - How to interpret: "If column B > 1000 and column D > 5%, product is viable"
+
+7. DECISION TREES:
+   Always provide clear if/then scenarios:
+   - "If engagement < 3% after 48 hours → Kill the product"
+   - "If 10+ 'where to buy' comments in first hour → Fast track to testing"
+   - "If competitor selling for 3x+ your cost → Green light"
+
+8. TIMELINE MAPPING:
+   Break everything into time blocks:
+   - Day 1, Hour 1-2: [Specific tasks]
+   - Day 1, Hour 3-4: [Next tasks]
+   - Week 1 Goal: [Measurable outcome]
+   - Month 1 Milestone: [Specific achievement]
+
+9. TROUBLESHOOTING SECTIONS:
+    For each major step, add:
+    ⚠️ **Common Issues:**
+    - Issue: "Can't find the analytics tab"
+      → Solution: "You need a Pro account ($7.99/month) or use free alternative: [specific tool]"
+    - Issue: "No products showing engagement"
+      → Solution: "Your niche is too broad. Narrow from 'fitness' to 'resistance bands for seniors'"
+
+REMEMBER: Your response should be so detailed that a complete beginner could follow it without asking a single clarifying question. Every instruction must be actionable, not conceptual.
+
+When Chris's knowledge base provides the foundation, BUILD on it with:
+- Specific implementation steps
+- Real numbers and thresholds
+- Exact tool instructions
+- Clear decision points
+- Troubleshooting guides
+
+Your goal: Transform high-level concepts into executable blueprints.
+`;
 
 export async function POST(req: Request) {
   try {
@@ -91,59 +201,43 @@ export async function POST(req: Request) {
     
     if (knowledgeBaseFound) {
       // STEP 2: AI organizes and presents knowledge base content
-      enhancedSystemPrompt = `${agent.systemPrompt}${knowledgeBaseResults}
+      enhancedSystemPrompt = `${agent.systemPrompt}
 
-MENTORSHIP/COACHING RESPONSE INSTRUCTIONS:
-You are acting as a complete mentor and coach, replacing human guidance. Your responses must be so comprehensive and detailed that someone could follow them step-by-step without any additional help.
+${ENHANCED_RESPONSE_SYSTEM}
 
-RESPONSE REQUIREMENTS:
-1. Use Chris's knowledge base content as your PRIMARY source
-2. Always reference "Chris" as the creator of this knowledge
-3. Create COMPLETE Standard Operating Procedures (SOPs)
-4. Provide step-by-step instructions that are so detailed they replace human coaching
-5. Include specific examples, timelines, and actionable steps
-6. Address potential obstacles and how to overcome them
-7. Make it so comprehensive that no additional research is needed
+${knowledgeBaseResults}
 
-SOP RESPONSE STRUCTURE:
-## 🎯 [Main Topic] - Complete Step-by-Step Guide
+KNOWLEDGE BASE INTEGRATION INSTRUCTIONS:
+1. Use Chris's knowledge as the foundation
+2. EXPAND every concept into detailed, step-by-step processes
+3. Add specific metrics, tools, and timelines
+4. Fill gaps with actionable instructions
+5. Include troubleshooting for common issues
+6. Provide clear next actions after each section
 
-### 📋 Prerequisites & Setup
-- **What you need before starting**
-- **Tools and resources required**
-- **Initial setup steps**
+CRITICAL: Do not just summarize Chris's content. EXPAND and ENHANCE it with:
+- Exact click paths and navigation
+- Specific numbers and thresholds  
+- Tool configurations and settings
+- Time requirements for each step
+- Decision criteria and checkpoints
+- Common pitfalls and solutions
 
-### 🚀 Phase 1: [First Major Step]
-**Step 1:** [Detailed instruction]
-**Step 2:** [Detailed instruction]
-**Step 3:** [Detailed instruction]
-
-> 💡 **Pro Tip from Chris:** [Specific advice]
-
-### 🔥 Phase 2: [Second Major Step]
-[Continue with detailed phases]
-
-### ⚠️ Common Mistakes & How to Avoid Them
-- **Mistake 1:** [Description] → **Solution:** [How to avoid]
-- **Mistake 2:** [Description] → **Solution:** [How to avoid]
-
-### 📊 Success Metrics & Timeline
-- **Week 1:** [What to expect]
-- **Week 2:** [What to expect]
-- **Month 1:** [What to expect]
-
-### 🎯 Next Steps & Action Items
-1. **Immediate Action:** [What to do right now]
-2. **This Week:** [Weekly goals]
-3. **This Month:** [Monthly objectives]
-
-> 🔥 **Remember:** [Motivational message from Chris's experience]`;
+Make every response so comprehensive that users can execute without confusion.`;
     } else {
       // STEP 3 & 4: No knowledge base results - research fallback
       enhancedSystemPrompt = `${agent.systemPrompt}
 
-FALLBACK RESPONSE INSTRUCTIONS:
-Since this topic isn't in Chris's knowledge base, you must still provide comprehensive guidance but clearly indicate the source limitations.
+${ENHANCED_RESPONSE_SYSTEM}
+
+NO KNOWLEDGE BASE FOUND INSTRUCTIONS:
+1. Acknowledge this specific topic isn't in Chris's knowledge base
+2. Provide general but STILL DETAILED step-by-step guidance
+3. Use the same depth and structure requirements
+4. Suggest asking about topics Chris has covered for best results
+5. Still provide actionable, specific instructions
+
+Even without Chris's specific content, maintain the same level of detail and actionability.
 
 FALLBACK RESPONSE STRUCTURE:
 ## ⚠️ Topic Not in Chris's Knowledge Base
