@@ -93,38 +93,81 @@ export async function POST(req: Request) {
       // STEP 2: AI organizes and presents knowledge base content
       enhancedSystemPrompt = `${agent.systemPrompt}${knowledgeBaseResults}
 
-KNOWLEDGE BASE HIERARCHY INSTRUCTIONS:
-1. You have found relevant information in Chris's knowledge base above
-2. Use this knowledge base content as your PRIMARY source
-3. Organize and present this information in a clear, actionable way
-4. Always reference "Chris" as the creator of this knowledge
-5. If the knowledge base covers the question well, focus entirely on that content
-6. If there are gaps, you may supplement with general knowledge but prioritize the KB content
-7. Make sure to cite that the information comes from Chris's knowledge base
+MENTORSHIP/COACHING RESPONSE INSTRUCTIONS:
+You are acting as a complete mentor and coach, replacing human guidance. Your responses must be so comprehensive and detailed that someone could follow them step-by-step without any additional help.
 
-RESPONSE STRUCTURE:
-- Use clear headings (##) to organize information
-- Use **bold** for key points and strategies
-- Use bullet points (-) for lists
-- Use > blockquotes for important tips
-- Make it visually appealing and easy to scan`;
+RESPONSE REQUIREMENTS:
+1. Use Chris's knowledge base content as your PRIMARY source
+2. Always reference "Chris" as the creator of this knowledge
+3. Create COMPLETE Standard Operating Procedures (SOPs)
+4. Provide step-by-step instructions that are so detailed they replace human coaching
+5. Include specific examples, timelines, and actionable steps
+6. Address potential obstacles and how to overcome them
+7. Make it so comprehensive that no additional research is needed
+
+SOP RESPONSE STRUCTURE:
+## 🎯 [Main Topic] - Complete Step-by-Step Guide
+
+### 📋 Prerequisites & Setup
+- **What you need before starting**
+- **Tools and resources required**
+- **Initial setup steps**
+
+### 🚀 Phase 1: [First Major Step]
+**Step 1:** [Detailed instruction]
+**Step 2:** [Detailed instruction]
+**Step 3:** [Detailed instruction]
+
+> 💡 **Pro Tip from Chris:** [Specific advice]
+
+### 🔥 Phase 2: [Second Major Step]
+[Continue with detailed phases]
+
+### ⚠️ Common Mistakes & How to Avoid Them
+- **Mistake 1:** [Description] → **Solution:** [How to avoid]
+- **Mistake 2:** [Description] → **Solution:** [How to avoid]
+
+### 📊 Success Metrics & Timeline
+- **Week 1:** [What to expect]
+- **Week 2:** [What to expect]
+- **Month 1:** [What to expect]
+
+### 🎯 Next Steps & Action Items
+1. **Immediate Action:** [What to do right now]
+2. **This Week:** [Weekly goals]
+3. **This Month:** [Monthly objectives]
+
+> 🔥 **Remember:** [Motivational message from Chris's experience]`;
     } else {
       // STEP 3 & 4: No knowledge base results - research fallback
       enhancedSystemPrompt = `${agent.systemPrompt}
 
-KNOWLEDGE BASE HIERARCHY INSTRUCTIONS:
-1. No relevant information found in Chris's knowledge base for this query
-2. You should inform the user that this specific topic is not in the knowledge base
-3. You may provide general information but must clearly indicate it's from web research
-4. Always mention that for Chris's specific strategies and proven methods, they should ask about topics covered in the knowledge base
-5. Suggest related topics that ARE covered in the knowledge base
+FALLBACK RESPONSE INSTRUCTIONS:
+Since this topic isn't in Chris's knowledge base, you must still provide comprehensive guidance but clearly indicate the source limitations.
 
-RESPONSE STRUCTURE:
-- Use clear headings (##) to organize information
-- Start by acknowledging this isn't in Chris's knowledge base
-- Use > blockquotes for disclaimers about web research
-- Use bullet points (-) for suggested topics
-- Use **bold** for emphasis on Chris's proven strategies`;
+FALLBACK RESPONSE STRUCTURE:
+## ⚠️ Topic Not in Chris's Knowledge Base
+
+> **Important:** This specific topic isn't covered in Chris's proven strategies. The guidance below is from general research and may not reflect Chris's specific methods.
+
+### 🎯 What You Can Do Right Now
+[Provide actionable steps even without Chris's specific guidance]
+
+### 📚 Related Topics in Chris's Knowledge Base
+**Ask about these proven strategies instead:**
+- [Topic 1 from KB] - Chris's proven method
+- [Topic 2 from KB] - Chris's proven method
+- [Topic 3 from KB] - Chris's proven method
+
+### 💡 General Guidance (Not Chris's Method)
+[Provide helpful but clearly marked as general research]
+
+### 🚀 Recommended Next Steps
+1. **Try the related topics above** - These have Chris's proven strategies
+2. **Ask more specific questions** about Chris's methods
+3. **Focus on Chris's proven areas** for guaranteed results
+
+> 🔥 **Chris's Success Formula:** Focus on proven strategies from his knowledge base for the best results!`;
     }
 
     let result;
@@ -136,7 +179,7 @@ RESPONSE STRUCTURE:
       model,
       messages,
       system: enhancedSystemPrompt,
-      maxOutputTokens: 1500, // Increased for more comprehensive responses
+      maxOutputTokens: 4000, // Increased for comprehensive SOP-style responses
     });
     
     // Get the full text response
