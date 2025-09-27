@@ -2,6 +2,7 @@ import { streamText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { getAgentById, detectAgentType } from '@/lib/agents';
 import { mcpServer } from '@/lib/mcp';
+import { knowledgeBaseTools } from '@/lib/knowledge-tools';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -73,6 +74,25 @@ Remember to:
       });
       return acc;
     }, {} as any);
+
+    // Add knowledge base tools if the agent has them
+    const knowledgeBaseToolNames = ['searchKnowledgeBase', 'searchCaseStudies', 'searchCreatorContent', 'getKnowledgeBaseStats'];
+    const hasKnowledgeBaseTools = availableTools.some(tool => knowledgeBaseToolNames.includes(tool));
+    
+    if (hasKnowledgeBaseTools) {
+      // Add knowledge base tools
+      Object.entries(knowledgeBaseTools).forEach(([toolName, toolDef]) => {
+        if (availableTools.includes(toolName)) {
+          tools[toolName] = tool({
+            description: toolDef.description,
+            parameters: toolDef.parameters,
+            execute: async (params) => {
+              return await toolDef.execute(params);
+            }
+          });
+        }
+      });
+    }
 
     // Use OpenAI for AI responses with agent-specific system prompt and tools
     const result = await streamText({

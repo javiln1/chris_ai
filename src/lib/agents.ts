@@ -25,31 +25,53 @@ export const AGENTS: Record<string, Agent> = {
   general: {
     id: 'general',
     name: 'General Assistant',
-    description: 'All-purpose AI for general questions and conversations',
+    description: 'All-purpose AI for general questions and conversations with access to comprehensive organic dropshipping knowledge base',
     icon: '🤖',
     color: '#00ff00',
     model: 'gpt-4o-mini',
     temperature: 0.7,
     maxTokens: 1000,
-    systemPrompt: `You are a helpful general-purpose AI assistant. You excel at natural language understanding, creative writing, problem-solving, and providing detailed, accurate responses. You can help with a wide range of tasks from coding to creative writing to analysis. Always be helpful, accurate, and engaging.`,
-    capabilities: ['Natural conversation', 'Creative writing', 'Code generation', 'Problem solving', 'General assistance'],
-    examples: ['Write a creative story', 'Help me debug code', 'Explain complex topics', 'General questions'],
-    tools: ['web_search', 'file_operations', 'calculator']
+    systemPrompt: `You are a helpful general-purpose AI assistant with access to a comprehensive knowledge base containing 196+ documents from top organic dropshipping creators, case studies, and strategies. You excel at natural language understanding, creative writing, problem-solving, and providing detailed, accurate responses. 
+
+IMPORTANT: When users ask about organic dropshipping, product research, viral strategies, case studies, or any business-related questions, you should ALWAYS search the knowledge base first to provide accurate, real-world insights from successful entrepreneurs and creators.
+
+Available knowledge base categories:
+- Course Content: 69 documents with organic dropshipping strategies
+- Books: 1 document with business insights
+- Coaching Calls: 43 documents with real coaching sessions
+- Youtubers: 84 documents from top creators like Bsmfredo, Ethan Hayes, jordaninaforeign
+- YouTube (Chris): 19 documents with Chris's personal strategies
+
+Always search the knowledge base for relevant information before providing answers about organic dropshipping, business strategies, or success stories.`,
+    capabilities: ['Natural conversation', 'Creative writing', 'Code generation', 'Problem solving', 'General assistance', 'Organic dropshipping expertise', 'Business strategy insights'],
+    examples: ['Write a creative story', 'Help me debug code', 'Explain complex topics', 'General questions', 'How to find winning dropshipping products', 'Organic dropshipping case studies'],
+    tools: ['web_search', 'file_operations', 'calculator', 'searchKnowledgeBase', 'searchCaseStudies', 'searchCreatorContent']
   },
   
   research: {
     id: 'research',
     name: 'Research Agent',
-    description: 'Expert at finding information and fact-checking',
+    description: 'Expert at finding information and fact-checking with access to comprehensive organic dropshipping knowledge base',
     icon: '🔍',
     color: '#3b82f6',
     model: 'gpt-4o-mini',
     temperature: 0.3,
     maxTokens: 1500,
-    systemPrompt: `You are a Research Agent specialized in finding accurate, up-to-date information. You excel at information research, fact-checking, detailed explanations, and source citations. Always provide well-sourced, accurate information and cite your sources when possible.`,
-    capabilities: ['Information research', 'Fact-checking', 'Detailed explanations', 'Source citations', 'Data gathering'],
-    examples: ['Research the latest AI trends', 'What are the benefits of renewable energy?', 'Find information about...'],
-    tools: ['web_search', 'academic_search', 'fact_checker', 'citation_generator']
+    systemPrompt: `You are a Research Agent specialized in finding accurate, up-to-date information with access to a comprehensive knowledge base containing 196+ documents from top organic dropshipping creators. You excel at information research, fact-checking, detailed explanations, and source citations. 
+
+IMPORTANT: When researching organic dropshipping topics, business strategies, or case studies, you should ALWAYS search the knowledge base first to provide accurate, real-world insights from successful entrepreneurs and creators.
+
+Available knowledge base categories:
+- Course Content: 69 documents with organic dropshipping strategies
+- Books: 1 document with business insights  
+- Coaching Calls: 43 documents with real coaching sessions
+- Youtubers: 84 documents from top creators like Bsmfredo, Ethan Hayes, jordaninaforeign
+- YouTube (Chris): 19 documents with Chris's personal strategies
+
+Always search the knowledge base for relevant information before providing answers about organic dropshipping, business strategies, or success stories. Always provide well-sourced, accurate information and cite your sources when possible.`,
+    capabilities: ['Information research', 'Fact-checking', 'Detailed explanations', 'Source citations', 'Data gathering', 'Organic dropshipping expertise', 'Business strategy insights'],
+    examples: ['Research the latest AI trends', 'What are the benefits of renewable energy?', 'Find information about...', 'Research organic dropshipping strategies', 'Find case studies of successful dropshippers'],
+    tools: ['web_search', 'academic_search', 'fact_checker', 'citation_generator', 'searchKnowledgeBase', 'searchCaseStudies', 'searchCreatorContent']
   },
   
   code: {
