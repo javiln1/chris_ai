@@ -43,8 +43,43 @@ export async function POST(req: Request) {
     // Get the agent configuration
     const agent = getAgentById(selectedAgentId || 'general');
     
+    // Check if this is a knowledge base related query and search if needed
+    let knowledgeBaseResults = '';
+    const latestMessage = messages[messages.length - 1];
+    if (latestMessage && latestMessage.role === 'user') {
+      const query = latestMessage.content.toLowerCase();
+      const isKnowledgeBaseQuery = query.includes('dropshipping') || 
+                                  query.includes('product') || 
+                                  query.includes('viral') || 
+                                  query.includes('case study') ||
+                                  query.includes('strategy') ||
+                                  query.includes('marketing') ||
+                                  query.includes('bsmfredo') ||
+                                  query.includes('ethan hayes') ||
+                                  query.includes('jordaninaforeign');
+      
+      if (isKnowledgeBaseQuery && agent.tools && agent.tools.includes('searchKnowledgeBase')) {
+        try {
+          const { searchKnowledgeBase } = await import('@/lib/pinecone');
+          const results = await searchKnowledgeBase(latestMessage.content, undefined, 3);
+          
+          if (results.length > 0) {
+            knowledgeBaseResults = `\n\nKNOWLEDGE BASE SEARCH RESULTS for "${latestMessage.content}":\n`;
+            results.forEach((result, index) => {
+              knowledgeBaseResults += `${index + 1}. ${result.title} (${Math.round(result.score * 100)}% match)\n`;
+              knowledgeBaseResults += `   Category: ${result.category}\n`;
+              knowledgeBaseResults += `   Creator: ${result.creator || 'Unknown'}\n`;
+              knowledgeBaseResults += `   Content: ${result.content.substring(0, 200)}...\n\n`;
+            });
+          }
+        } catch (error) {
+          console.error('Error searching knowledge base:', error);
+        }
+      }
+    }
+    
     // Add agent context to the system prompt
-    const enhancedSystemPrompt = `${agent.systemPrompt}
+    const enhancedSystemPrompt = `${agent.systemPrompt}${knowledgeBaseResults}
 
 You are currently operating as the ${agent.name} (${agent.icon}). 
 Your specialized capabilities include: ${agent.capabilities.join(', ')}.
@@ -56,43 +91,48 @@ Remember to:
 - Provide responses that showcase your expertise
 - Be helpful and professional
 - Use your specialized knowledge to provide the best possible assistance
-- Use available tools when appropriate to enhance your responses`;
+- If knowledge base results are provided above, use them to give accurate, specific answers`;
 
     // Get available tools for this agent
     const availableTools = agent.tools || [];
-    const mcpTools = mcpServer.getAvailableTools();
-    const agentTools = mcpTools.filter(tool => availableTools.includes(tool.name));
+    
+    // Temporarily disable MCP tools to focus on knowledge base
+    // const mcpTools = mcpServer.getAvailableTools();
+    // const agentTools = mcpTools.filter(tool => availableTools.includes(tool.name));
 
     // Create tool definitions for the AI SDK
-    const tools = agentTools.reduce((acc, mcpTool) => {
-      acc[mcpTool.name] = tool({
-        description: mcpTool.description,
-        parameters: mcpTool.inputSchema,
-        execute: async (params) => {
-          return await mcpServer.callTool('default', mcpTool.name, params);
-        }
-      });
-      return acc;
-    }, {} as any);
-
-    // Add knowledge base tools if the agent has them
-    const knowledgeBaseToolNames = ['searchKnowledgeBase', 'searchCaseStudies', 'searchCreatorContent', 'getKnowledgeBaseStats'];
-    const hasKnowledgeBaseTools = availableTools.some(tool => knowledgeBaseToolNames.includes(tool));
+    const tools: any = {};
     
-    if (hasKnowledgeBaseTools) {
-      // Add knowledge base tools
-      Object.entries(knowledgeBaseTools).forEach(([toolName, toolDef]) => {
-        if (availableTools.includes(toolName)) {
-          tools[toolName] = tool({
-            description: toolDef.description,
-            parameters: toolDef.parameters,
-            execute: async (params) => {
-              return await toolDef.execute(params);
-            }
-          });
-        }
-      });
-    }
+    // Temporarily disable MCP tools
+    // const tools = agentTools.reduce((acc, mcpTool) => {
+    //   acc[mcpTool.name] = tool({
+    //     description: mcpTool.description,
+    //     parameters: mcpTool.inputSchema,
+    //     execute: async (params) => {
+    //       return await mcpServer.callTool('default', mcpTool.name, params);
+    //     }
+    //   });
+    //   return acc;
+    // }, {} as any);
+
+    // Temporarily disable all tools to test basic functionality
+    // const knowledgeBaseToolNames = ['searchKnowledgeBase', 'searchCaseStudies', 'searchCreatorContent', 'getKnowledgeBaseStats'];
+    // const hasKnowledgeBaseTools = availableTools.some(tool => knowledgeBaseToolNames.includes(tool));
+    
+    // if (hasKnowledgeBaseTools) {
+    //   // Add knowledge base tools
+    //   Object.entries(knowledgeBaseTools).forEach(([toolName, toolDef]) => {
+    //     if (availableTools.includes(toolName)) {
+    //       tools[toolName] = tool({
+    //         description: toolDef.description,
+    //         parameters: toolDef.parameters,
+    //         execute: async (params) => {
+    //           return await toolDef.execute(params);
+    //         }
+    //       });
+    //     }
+    //   });
+    // }
 
     // Use OpenAI for AI responses with agent-specific system prompt and tools
     const result = await streamText({
@@ -106,38 +146,47 @@ Remember to:
       maxTokens: agent.maxTokens || 1000,
       tools: Object.keys(tools).length > 0 ? tools : undefined,
       onFinish: async (result) => {
-        // Extract sources from tool calls if any
-        let sources = [];
-        let searchQuery = '';
-        
-        if (result.toolCalls && result.toolCalls.length > 0) {
-          for (const toolCall of result.toolCalls) {
-            if (toolCall.toolName === 'searchKnowledgeBase' || 
-                toolCall.toolName === 'searchCaseStudies' || 
-                toolCall.toolName === 'searchCreatorContent') {
+        // If we have knowledge base results, append them as sources
+        if (knowledgeBaseResults && latestMessage) {
+          try {
+            const { searchKnowledgeBase } = await import('@/lib/pinecone');
+            const results = await searchKnowledgeBase(latestMessage.content, undefined, 3);
+            
+            if (results.length > 0) {
+              const sources = results.map(result => ({
+                title: result.title,
+                content: result.content,
+                category: result.category,
+                creator: result.creator,
+                relevance: Math.round(result.score * 100) + '%',
+                score: result.score,
+                hasVideo: !!result.video_url,
+                videoUrl: result.video_url
+              }));
               
-              searchQuery = toolCall.args.query || searchQuery;
-              
-              try {
-                const toolResult = JSON.parse(toolCall.result);
-                if (toolResult.success && toolResult.results) {
-                  sources = sources.concat(toolResult.results);
-                }
-              } catch (error) {
-                console.error('Error parsing tool result:', error);
-              }
+              result.text += `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ sources, searchQuery: latestMessage.content })} -->`;
             }
+          } catch (error) {
+            console.error('Error getting sources for response:', error);
           }
-        }
-        
-        // Append sources data to the response if found
-        if (sources.length > 0) {
-          result.text += `\n\n<!-- SOURCES_DATA: ${JSON.stringify({ sources, searchQuery })} -->`;
         }
       },
     });
 
-    return result.toDataStreamResponse();
+    // Try different response methods for AI SDK v5
+    if (typeof result.toDataStreamResponse === 'function') {
+      return result.toDataStreamResponse();
+    } else if (typeof result.toResponse === 'function') {
+      return result.toResponse();
+    } else if (typeof result.toTextStreamResponse === 'function') {
+      return result.toTextStreamResponse();
+    } else {
+      return new Response(result.toDataStream(), {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+      });
+    }
   } catch (error) {
     console.error('Agent API Error:', error);
     
