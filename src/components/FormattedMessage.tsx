@@ -69,14 +69,15 @@ export default function FormattedMessage({
   }
 
   return (
-    <div
-      className={`group relative w-full max-w-3xl rounded-2xl p-6
-                   ${role === 'user'
-                     ? 'bg-green-500/10 border border-green-400/20 text-zinc-100'
-                     : 'bg-zinc-900/70 text-zinc-100'}
-                   shadow-md shadow-black/20 hover:shadow-lg hover:shadow-black/30
-                   transition-shadow duration-200`}
-    >
+    <div className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`group relative rounded-2xl p-6
+                     ${role === 'user'
+                       ? 'max-w-2xl bg-green-500/10 border border-green-400/20 text-zinc-100'
+                       : 'max-w-4xl bg-zinc-900/70 text-zinc-100'}
+                     shadow-md shadow-black/20 hover:shadow-lg hover:shadow-black/30
+                     transition-shadow duration-200`}
+      >
       {/* Copy */}
       {/* Copy button container */}
       <div className="absolute right-3 top-3">
@@ -117,56 +118,56 @@ export default function FormattedMessage({
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
-            <h1 className="text-2xl sm:text-3xl font-semibold text-zinc-100 mb-4">
+            <h1 className="text-3xl sm:text-4xl font-semibold text-zinc-100 mb-6 mt-8">
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-xl sm:text-2xl font-semibold text-zinc-100 mt-3 mb-2">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-zinc-100 mt-8 mb-4">
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-lg font-semibold text-zinc-200 mt-3 mb-1.5">
+            <h3 className="text-xl font-semibold text-zinc-200 mt-6 mb-3">
               {children}
             </h3>
           ),
           h4: ({ children }) => (
-            <h4 className="text-base font-semibold text-zinc-200 mt-2 mb-1">
+            <h4 className="text-lg font-semibold text-zinc-200 mt-4 mb-2">
               {children}
             </h4>
           ),
           strong: ({ children }) => (
             <strong className="text-zinc-100 font-semibold">{children}</strong>
           ),
-          p: ({ children }) => {
-            const raw =
-              typeof children?.[0] === "string"
-                ? (children[0] as string)
-                : undefined;
-            const call = raw ? detectCallout(raw) : null;
-            if (call) {
-              return (
-                <div className="my-3 rounded-lg border border-zinc-700 bg-zinc-800/40 px-3 py-2">
-                  <div className="text-sm font-medium text-zinc-100">
-                    <span className="mr-1">{call.icon}</span>
-                    {call.label}
-                  </div>
-                  <div className="text-sm text-zinc-300 leading-6 mt-1">
-                    {call.body}
-                  </div>
-                </div>
-              );
-            }
-            return <p className="leading-7 text-zinc-200 mb-3">{children}</p>;
-          },
+                p: ({ children }) => {
+                  const raw =
+                    typeof children?.[0] === "string"
+                      ? (children[0] as string)
+                      : undefined;
+                  const call = raw ? detectCallout(raw) : null;
+                  if (call) {
+                    return (
+                      <div className="my-4 rounded-lg border border-zinc-700 bg-zinc-800/40 px-4 py-3">
+                        <div className="text-sm font-medium text-zinc-100">
+                          <span className="mr-1">{call.icon}</span>
+                          {call.label}
+                        </div>
+                        <div className="text-sm text-zinc-300 leading-7 mt-1">
+                          {call.body}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return <p className="leading-8 text-zinc-200 mb-4 text-base">{children}</p>;
+                },
           ul: ({ children }) => (
-            <ul className="list-disc pl-6 space-y-1.5 mb-4">{children}</ul>
+            <ul className="list-disc pl-6 space-y-2 mb-6">{children}</ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal pl-6 space-y-1.5 mb-4">{children}</ol>
+            <ol className="list-decimal pl-6 space-y-2 mb-6">{children}</ol>
           ),
-          li: ({ children }) => <li className="text-zinc-200">{children}</li>,
+          li: ({ children }) => <li className="text-zinc-200 leading-7 text-base">{children}</li>,
           a: ({ href, children }) => (
             <a
               href={href}
@@ -177,7 +178,7 @@ export default function FormattedMessage({
               {children}
             </a>
           ),
-          hr: () => <hr className="my-4 border-zinc-800" />,
+          hr: () => <hr className="my-8 border-zinc-800" />,
           code({ inline, className, children }) {
             const match = /language-(\w+)/.exec(className || "");
             return !inline && match ? (
@@ -230,6 +231,7 @@ export default function FormattedMessage({
           </ol>
         </div>
       )}
+      </div>
     </div>
   );
 }
