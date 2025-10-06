@@ -400,7 +400,8 @@ FALLBACK RESPONSE STRUCTURE:
         sourcesText += `**${index + 1}. ${result.title}**\n`;
         sourcesText += `   - Relevance: ${relevance}% match\n`;
         sourcesText += `   - Category: ${result.category}\n`;
-        if (result.creator) {
+        // Only show creator if it's NOT from Youtubers category
+        if (result.creator && result.category.toLowerCase() !== 'youtubers') {
           sourcesText += `   - From: ${result.creator}\n`;
         }
         sourcesText += `\n`;
