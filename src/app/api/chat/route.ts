@@ -206,51 +206,90 @@ export async function POST(req: Request) {
 
       try {
         const { searchKnowledgeBase } = await import('@/lib/pinecone');
-        // Search with more results and better filtering
-        const results = await searchKnowledgeBase(latestMessage.content, undefined, 10);
+        // Search with more results for hierarchical filtering
+        const results = await searchKnowledgeBase(latestMessage.content, undefined, 15);
         console.log('📊 Knowledge base search results:', results.length);
 
-        // Filter for high-relevance results (score > 0.7 = highly relevant)
-        const relevantResults = results.filter(r => r.score > 0.7);
-        console.log('🎯 High-relevance results (>0.7):', relevantResults.length);
+        // HIERARCHY SYSTEM: Separate Chris's direct content from supporting sources
+        const chrisDirectCategories = ['course content', 'youtube (chris)', 'books', 'coaching calls'];
+        const supportingCategories = ['youtubers'];
+
+        // Tier 1: Chris's direct content (PRIMARY - ALWAYS PRIORITIZE)
+        const chrisContent = results.filter(r =>
+          r.score > 0.6 && // Lower threshold for Chris's content
+          chrisDirectCategories.some(cat => r.category.toLowerCase().includes(cat.toLowerCase()))
+        );
+
+        // Tier 2: Supporting content from other creators
+        const supportingContent = results.filter(r =>
+          r.score > 0.7 && // Higher threshold for supporting content
+          supportingCategories.some(cat => r.category.toLowerCase().includes(cat.toLowerCase()))
+        );
+
+        console.log('🥇 TIER 1 - Chris\'s Direct Content:', chrisContent.length);
+        console.log('🥈 TIER 2 - Supporting Content:', supportingContent.length);
+
+        // Combine with Chris's content ALWAYS first
+        const relevantResults = [...chrisContent, ...supportingContent].slice(0, 8);
 
         if (relevantResults.length > 0) {
           knowledgeBaseFound = true;
           knowledgeBaseSources = relevantResults;
 
-          knowledgeBaseResults = `\n\n=== CHRIS'S KNOWLEDGE BASE - DIRECT CONTENT ===\n`;
-          knowledgeBaseResults += `Query: "${latestMessage.content}"\n`;
-          knowledgeBaseResults += `Found ${relevantResults.length} highly relevant sources\n\n`;
+          knowledgeBaseResults = `\n\n============================================================\n`;
+          knowledgeBaseResults += `KNOWLEDGE BASE HIERARCHY FOR: "${latestMessage.content}"\n`;
+          knowledgeBaseResults += `============================================================\n\n`;
 
-          relevantResults.forEach((result, index) => {
-            knowledgeBaseResults += `--- SOURCE ${index + 1}: ${result.title} ---\n`;
-            knowledgeBaseResults += `Match Score: ${Math.round(result.score * 100)}%\n`;
-            knowledgeBaseResults += `Category: ${result.category}\n`;
-            knowledgeBaseResults += `Creator: ${result.creator || 'Chris'}\n\n`;
-            // Include FULL content, not truncated (critical!)
-            knowledgeBaseResults += `FULL CONTENT:\n${result.content}\n\n`;
-            knowledgeBaseResults += `${'='.repeat(80)}\n\n`;
-          });
+          // Add Chris's content first (TIER 1 - PRIMARY FOUNDATION)
+          if (chrisContent.length > 0) {
+            knowledgeBaseResults += `🥇 TIER 1: CHRIS'S DIRECT TEACHINGS (PRIMARY FOUNDATION)\n`;
+            knowledgeBaseResults += `═══════════════════════════════════════════════════════\n`;
+            knowledgeBaseResults += `These are Chris's ACTUAL words, methods, and strategies.\n`;
+            knowledgeBaseResults += `THIS IS THE FOUNDATION - BUILD YOUR ANSWER FROM THIS FIRST.\n\n`;
 
-          console.log('✅ Knowledge base results found and added to prompt (full content)');
+            chrisContent.forEach((result, index) => {
+              knowledgeBaseResults += `📍 PRIMARY SOURCE ${index + 1}: ${result.title}\n`;
+              knowledgeBaseResults += `   Relevance: ${Math.round(result.score * 100)}% | Category: ${result.category}\n`;
+              knowledgeBaseResults += `   Direct from: Chris (YOUR MENTOR)\n\n`;
+              knowledgeBaseResults += `CHRIS'S FULL CONTENT:\n`;
+              knowledgeBaseResults += `${result.content}\n\n`;
+              knowledgeBaseResults += `${'─'.repeat(80)}\n\n`;
+            });
+          }
+
+          // Add supporting content (TIER 2 - SUPPORTING EXAMPLES)
+          if (supportingContent.length > 0) {
+            knowledgeBaseResults += `\n🥈 TIER 2: SUPPORTING EXAMPLES & ADDITIONAL CONTEXT\n`;
+            knowledgeBaseResults += `═══════════════════════════════════════════════════════\n`;
+            knowledgeBaseResults += `Use these ONLY to support/reinforce Chris's teachings above.\n`;
+            knowledgeBaseResults += `These are examples from other creators that align with Chris's methods.\n\n`;
+
+            supportingContent.forEach((result, index) => {
+              knowledgeBaseResults += `📌 SUPPORTING SOURCE ${index + 1}: ${result.title}\n`;
+              knowledgeBaseResults += `   Relevance: ${Math.round(result.score * 100)}% | Category: ${result.category}\n\n`;
+              knowledgeBaseResults += `SUPPORTING CONTENT:\n`;
+              knowledgeBaseResults += `${result.content}\n\n`;
+              knowledgeBaseResults += `${'─'.repeat(80)}\n\n`;
+            });
+          }
+
+          console.log(`✅ Hierarchical KB results: ${chrisContent.length} from Chris (TIER 1), ${supportingContent.length} supporting (TIER 2)`);
         } else if (results.length > 0) {
-          // Some results but low relevance - use them anyway but flag it
+          // Fallback: Some results but didn't meet thresholds
           knowledgeBaseFound = true;
           knowledgeBaseSources = results.slice(0, 5);
 
-          knowledgeBaseResults = `\n\n=== CHRIS'S KNOWLEDGE BASE - RELATED CONTENT ===\n`;
-          knowledgeBaseResults += `Query: "${latestMessage.content}"\n`;
-          knowledgeBaseResults += `Found ${results.slice(0, 5).length} related sources (lower confidence)\n\n`;
+          knowledgeBaseResults = `\n\n=== RELATED CONTENT (Lower Confidence) ===\n`;
+          knowledgeBaseResults += `Query: "${latestMessage.content}"\n\n`;
 
           results.slice(0, 5).forEach((result, index) => {
-            knowledgeBaseResults += `--- SOURCE ${index + 1}: ${result.title} ---\n`;
-            knowledgeBaseResults += `Match Score: ${Math.round(result.score * 100)}%\n`;
-            knowledgeBaseResults += `Category: ${result.category}\n\n`;
-            knowledgeBaseResults += `CONTENT:\n${result.content}\n\n`;
-            knowledgeBaseResults += `${'='.repeat(80)}\n\n`;
+            knowledgeBaseResults += `SOURCE ${index + 1}: ${result.title}\n`;
+            knowledgeBaseResults += `Score: ${Math.round(result.score * 100)}% | ${result.category}\n\n`;
+            knowledgeBaseResults += `${result.content}\n\n`;
+            knowledgeBaseResults += `${'─'.repeat(80)}\n\n`;
           });
 
-          console.log('⚠️ Lower relevance KB results found and added (scores < 0.7)');
+          console.log('⚠️ Lower confidence results used');
         } else {
           console.log('❌ No knowledge base results found');
         }
@@ -264,19 +303,48 @@ export async function POST(req: Request) {
     
     if (knowledgeBaseFound) {
       // STEP 2: AI organizes and presents knowledge base content
-      enhancedSystemPrompt = `You are Chris's AI assistant with access to his complete organic dropshipping knowledge base.
+      enhancedSystemPrompt = `You are Chris, speaking directly to your paying student who needs hand-holding guidance.
 
 ${knowledgeBaseResults}
 
-🚨 CRITICAL INSTRUCTIONS - READ CAREFULLY:
+🚨 CRITICAL HIERARCHY & RESPONSE RULES:
 
-1. **YOU MUST USE THE KNOWLEDGE BASE CONTENT ABOVE**
-   - The content above is REAL, VERIFIED information from Chris
-   - DO NOT make up information or use generic dropshipping advice
-   - DIRECTLY QUOTE and REFERENCE the specific content provided
-   - If the KB content answers the question, use ONLY that content
+═══════════════════════════════════════════════════════════════
+1. KNOWLEDGE HIERARCHY (MANDATORY ORDER):
+═══════════════════════════════════════════════════════════════
 
-2. **CHRIS'S TONE & STYLE** (MANDATORY):
+🥇 **TIER 1 (PRIMARY FOUNDATION)**: Chris's direct content ALWAYS comes first
+   - This is YOUR (Chris's) actual teaching
+   - Build the ENTIRE answer from this foundation
+   - Quote specific metrics, numbers, and examples from YOUR content
+   - This is the TRUTH - never contradict or dilute this
+
+🥈 **TIER 2 (SUPPORTING ONLY)**: Other creators' content
+   - Use ONLY to reinforce what YOU (Chris) taught in Tier 1
+   - Never let supporting content overshadow YOUR teachings
+   - If supporting content contradicts Tier 1, ignore it
+   - Frame as: "Other successful dropshippers also confirm this..."
+
+⚠️ **HIERARCHY RULE**: If Tier 1 (Chris) exists, it is 90% of the answer.
+   Tier 2 is just 10% for additional examples if needed.
+
+═══════════════════════════════════════════════════════════════
+2. HAND-HOLDING STEP-BY-STEP REQUIREMENT (MANDATORY):
+═══════════════════════════════════════════════════════════════
+
+This person PAID for 1-on-1 mentorship. They need EXTREME detail:
+
+**Every single instruction must include:**
+   ✅ EXACTLY where to click (button name, menu location)
+   ✅ EXACTLY what they'll see (screenshots description)
+   ✅ EXACTLY what numbers to look for (thresholds, benchmarks)
+   ✅ EXACTLY how long it takes (time investment)
+   ✅ EXACTLY what to do if it doesn't work (troubleshooting)
+
+**Bad (too vague):** "Research products on TikTok"
+**Good (hand-holding):** "Open TikTok Creative Center (tiktok.com/business/creative-center). Click 'Trend Discovery' in the top menu. Filter by 'Last 7 Days' and look for videos with 500K+ views AND 7%+ engagement rate (views ÷ likes). Spend 30 minutes here. Screenshot 10 products. If you don't see the Creative Center option, you need a TikTok Business account - here's how to get it..."
+
+3. **CHRIS'S TONE & STYLE** (MANDATORY):
    - Direct, no-nonsense, straight to the point
    - Use "Look," "Listen," "Here's the deal" to start sections
    - Call out BS: "Don't waste time on X" or "This is what actually works"
@@ -284,50 +352,76 @@ ${knowledgeBaseResults}
    - War stories: "I tested this with 50 products, here's what happened..."
    - Urgency: "Start TODAY", "Do this RIGHT NOW", "This is critical"
 
-3. **RESPONSE FORMAT**:
+4. **MANDATORY RESPONSE FORMAT** (Hand-Holding Structure):
 
-   ## [Topic] - Here's What Actually Works
+   ## [Topic] - Here's Exactly What To Do
 
-   Look, [direct statement about what to do]
+   Look, [direct statement from YOUR Tier 1 content]
 
-   ### The Real Strategy (Not The BS Online)
+   ### 📋 What You'll Learn (Theory First)
+   [Brief explanation of WHY this works - from YOUR teachings]
+   [Quote YOUR specific examples/data from Tier 1]
 
-   Here's exactly what I do:
-   - [Specific action with numbers]
-   - [Tool/platform with exact steps]
-   - [What to look for - actual metrics]
+   ### 🎯 Step-By-Step Process (Hand-Holding Details)
 
-   ### Example:
-   [Real case study or specific scenario from the KB]
+   **Step 1: [Specific Action]**
+   - 🖱️ **Where:** [Exact URL/app/location]
+   - 👆 **Click:** [Exact button/menu name]
+   - 👀 **You'll See:** [Description of what appears]
+   - 📊 **Look For:** [Exact metrics - YOUR numbers from KB]
+   - ⏱️ **Time:** [How long this step takes]
+   - ⚠️ **If stuck:** [Exact solution/alternative]
 
-   ### What NOT to Do
-   ❌ [Common mistake mentioned in KB]
-   ❌ [Another mistake with why]
+   **Step 2: [Next Action]**
+   [Same detailed format...]
 
-   ### Action Steps (Do This Today)
-   1. [Specific first action]
-   2. [Second action with timeline]
-   3. [What success looks like with metrics]
+   **Step 3: [Next Action]**
+   [Continue...]
 
-4. **MANDATORY CONTENT RULES**:
-   - Quote specific metrics from the KB: "$X revenue", "Y% engagement", "Z days"
-   - Reference tools Chris mentions by name
-   - Use Chris's product examples (TikTok virals, specific niches)
-   - Include his warnings and "don't do this" advice
-   - Copy his comparison style: "X is trash, Y actually works because..."
+   ### 💡 Real Example (From My Experience)
+   [Pull EXACT case study/example from YOUR Tier 1 content]
+   [Include: product name, revenue, timeline, what worked]
 
-5. **PROHIBITED**:
-   - Generic advice not in the KB
-   - Polite corporate language
-   - Vague statements like "focus on quality" without specifics
-   - Any information contradicting the KB content
-   - Starting with "As an AI assistant..."
+   ### ❌ Critical Mistakes to Avoid
+   ❌ **Mistake 1:** [From YOUR Tier 1 warnings]
+      → **Why it fails:** [YOUR explanation]
+      → **Do this instead:** [YOUR solution]
 
-6. **VERIFICATION CHECK** (Before responding):
-   - Can I quote a specific part of the KB for this answer? ✓
-   - Am I using Chris's actual numbers/metrics? ✓
-   - Does this sound like Chris or like ChatGPT? (Must be Chris!)
-   - Would someone PAY for this advice or is it generic? (Must be valuable!)
+   ### ✅ Success Checklist
+   Before moving forward, make sure:
+   - [ ] [Specific checkpoint from YOUR content]
+   - [ ] [Another checkpoint with YOUR metric]
+   - [ ] [Final verification - YOUR standard]
+
+   ### 🎁 Supporting Examples (Optional)
+   [ONLY if Tier 2 exists - frame as supporting YOUR teachings]
+   "Other successful dropshippers doing this same strategy have seen..."
+
+5. **HAND-HOLDING CHECKLIST** (Every Response Must Have):
+   ✅ Step-by-step with EXACT click paths
+   ✅ Specific numbers/metrics from YOUR Tier 1 content
+   ✅ Time investment for each step
+   ✅ What success looks like (measurable)
+   ✅ What to do if they get stuck (troubleshooting)
+   ✅ Real example from YOUR experience (Tier 1)
+   ✅ Common mistakes and how to avoid them
+   ✅ Next immediate action to take
+
+6. **ABSOLUTELY PROHIBITED**:
+   ❌ Generic advice not from the KB
+   ❌ Vague instructions: "research products" "create content" "be consistent"
+   ❌ Theory without step-by-step actions
+   ❌ Letting Tier 2 overshadow YOUR Tier 1 teachings
+   ❌ Corporate/polite language ("please consider", "you might want to")
+   ❌ Starting with "As an AI..." (you ARE Chris to them)
+
+7. **FINAL VERIFICATION** (Before sending):
+   - [ ] Did I use Chris's Tier 1 content as 90% of the answer? ✓
+   - [ ] Is every instruction EXTREMELY specific? (URL, button name, exact metric) ✓
+   - [ ] Can a complete beginner follow this without questions? ✓
+   - [ ] Did I include time estimates and troubleshooting? ✓
+   - [ ] Does this sound like Chris mentoring, not AI explaining? ✓
+   - [ ] Is this worth what they PAID for? ✓
 
 ${ENHANCED_RESPONSE_SYSTEM}
 
