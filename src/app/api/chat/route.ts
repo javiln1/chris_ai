@@ -218,21 +218,24 @@ export async function POST(req: Request) {
 
         // Tier 1: Chris's direct content (PRIMARY - ALWAYS PRIORITIZE)
         // Everything EXCEPT "Youtubers" is assumed to be Chris's content
+        // FILTER OUT ENTRIES WITHOUT CONTENT
         const chrisContent = results.filter(r => {
           const category = (r.category || 'Unknown').toLowerCase();
           const isFromYoutubers = category.includes('youtuber');
           const meetsThreshold = r.score > 0.45; // Lower threshold for Chris
+          const hasContent = r.content && r.content.length > 100; // MUST have content
 
-          console.log(`  ${r.title.substring(0, 50)}: category="${r.category}", score=${r.score.toFixed(2)}, isChris=${!isFromYoutubers && meetsThreshold}`);
+          console.log(`  ${r.title.substring(0, 50)}: category="${r.category}", score=${r.score.toFixed(2)}, isChris=${!isFromYoutubers && meetsThreshold}, hasContent=${hasContent}`);
 
-          return !isFromYoutubers && meetsThreshold;
+          return !isFromYoutubers && meetsThreshold && hasContent;
         });
 
         // Tier 2: Supporting content from other creators
         const supportingContent = results.filter(r => {
           const category = (r.category || 'Unknown').toLowerCase();
           const isFromYoutubers = category.includes('youtuber');
-          return isFromYoutubers && r.score > 0.45; // Same threshold for now
+          const hasContent = r.content && r.content.length > 100; // MUST have content
+          return isFromYoutubers && r.score > 0.45 && hasContent; // Same threshold for now
         });
 
         console.log('🥇 TIER 1 - Chris\'s Direct Content:', chrisContent.length);
