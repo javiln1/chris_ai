@@ -10,6 +10,8 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 import OpenAI from 'openai';
 import * as fs from 'fs';
+import { google } from 'googleapis';
+import { JWT } from 'google-auth-library';
 
 // Initialize clients
 const pinecone = new Pinecone({
@@ -19,6 +21,35 @@ const pinecone = new Pinecone({
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
+
+// Initialize Google Auth with Service Account
+let googleAuth: JWT | null = null;
+
+function getGoogleAuth(): JWT {
+  if (googleAuth) return googleAuth;
+
+  const credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH || './google-credentials.json';
+
+  if (!fs.existsSync(credentialsPath)) {
+    throw new Error(
+      `Google credentials file not found at: ${credentialsPath}\n` +
+      'Please follow the setup guide in scripts/GOOGLE_SERVICE_ACCOUNT_SETUP.md'
+    );
+  }
+
+  const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf-8'));
+
+  googleAuth = new google.auth.JWT({
+    email: credentials.client_email,
+    key: credentials.private_key,
+    scopes: [
+      'https://www.googleapis.com/auth/documents.readonly',
+      'https://www.googleapis.com/auth/drive.readonly',
+    ],
+  });
+
+  return googleAuth;
+}
 
 interface SheetRow {
   title: string;
@@ -50,8 +81,7 @@ function extractDocId(url: string): string | null {
 }
 
 /**
- * Fetch Google Doc content as plain text
- * Uses Google Docs API export endpoint
+ * Fetch Google Doc content using Service Account authentication
  */
 async function fetchGoogleDocContent(docUrl: string): Promise<string> {
   const docId = extractDocId(docUrl);
@@ -62,22 +92,56 @@ async function fetchGoogleDocContent(docUrl: string): Promise<string> {
   }
 
   try {
-    // Export as plain text
-    const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+    const auth = getGoogleAuth();
+    const docs = google.docs({ version: 'v1', auth });
 
-    const response = await fetch(exportUrl);
+    // Get the document
+    const doc = await docs.documents.get({
+      documentId: docId,
+    });
 
-    if (!response.ok) {
-      console.warn(`⚠️ Failed to fetch doc ${docId}: ${response.status}`);
+    if (!doc.data.body?.content) {
+      console.warn(`⚠️ Doc ${docId} has no content`);
       return '';
     }
 
-    const content = await response.text();
-    console.log(`✅ Fetched doc ${docId}: ${content.length} chars`);
+    // Extract text from document structure
+    let fullText = '';
 
-    return content;
-  } catch (error) {
-    console.error(`❌ Error fetching doc ${docId}:`, error);
+    const extractText = (element: any): void => {
+      if (element.paragraph) {
+        for (const textRun of element.paragraph.elements || []) {
+          if (textRun.textRun?.content) {
+            fullText += textRun.textRun.content;
+          }
+        }
+      }
+      if (element.table) {
+        for (const row of element.table.tableRows || []) {
+          for (const cell of row.tableCells || []) {
+            for (const cellElement of cell.content || []) {
+              extractText(cellElement);
+            }
+          }
+        }
+      }
+    };
+
+    for (const element of doc.data.body.content) {
+      extractText(element);
+    }
+
+    console.log(`✅ Fetched doc ${docId}: ${fullText.length} chars`);
+
+    return fullText;
+  } catch (error: any) {
+    if (error.code === 404) {
+      console.warn(`⚠️ Doc ${docId} not found - might not be shared with service account`);
+    } else if (error.code === 403) {
+      console.warn(`⚠️ Doc ${docId} permission denied - share folder with service account`);
+    } else {
+      console.error(`❌ Error fetching doc ${docId}:`, error.message);
+    }
     return '';
   }
 }
