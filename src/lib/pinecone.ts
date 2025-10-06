@@ -173,17 +173,27 @@ export async function searchKnowledgeBase(
     });
 
     // Transform results
-    const results: SearchResult[] = searchResponse.matches?.map(match => ({
-      title: match.metadata?.title as string || 'Unknown',
-      content: match.metadata?.content as string || '',
-      category: match.metadata?.category as string || 'Unknown',
-      creator: match.metadata?.creator as string,
-      video_url: match.metadata?.video_url as string,
-      score: match.score || 0,
-    })) || [];
+    const results: SearchResult[] = searchResponse.matches?.map(match => {
+      const content = match.metadata?.content as string || '';
+      const title = match.metadata?.title as string || 'Unknown';
+
+      // DEBUG: Log content length to see if we're getting full transcripts
+      console.log(`📄 "${title.substring(0, 50)}...": ${content.length} chars (${Math.round(content.length / 1000)}KB)`);
+
+      return {
+        title,
+        content,
+        category: match.metadata?.category as string || 'Unknown',
+        creator: match.metadata?.creator as string,
+        video_url: match.metadata?.video_url as string,
+        score: match.score || 0,
+      };
+    }) || [];
 
     // Cache the results
     setCache(cacheKey, results);
+
+    console.log(`✅ Total content retrieved: ${results.reduce((sum, r) => sum + r.content.length, 0)} chars`);
 
     return results;
   } catch (error) {

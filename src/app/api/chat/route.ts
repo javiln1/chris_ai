@@ -211,20 +211,29 @@ export async function POST(req: Request) {
         console.log('📊 Knowledge base search results:', results.length);
 
         // HIERARCHY SYSTEM: Separate Chris's direct content from supporting sources
-        const chrisDirectCategories = ['course content', 'youtube (chris)', 'books', 'coaching calls'];
-        const supportingCategories = ['youtubers'];
+
+        // Log all categories to see what we're working with
+        const allCategories = results.map(r => r.category);
+        console.log('📂 All categories found:', [...new Set(allCategories)]);
 
         // Tier 1: Chris's direct content (PRIMARY - ALWAYS PRIORITIZE)
-        const chrisContent = results.filter(r =>
-          r.score > 0.6 && // Lower threshold for Chris's content
-          chrisDirectCategories.some(cat => r.category.toLowerCase().includes(cat.toLowerCase()))
-        );
+        // Everything EXCEPT "Youtubers" is assumed to be Chris's content
+        const chrisContent = results.filter(r => {
+          const category = (r.category || 'Unknown').toLowerCase();
+          const isFromYoutubers = category.includes('youtuber');
+          const meetsThreshold = r.score > 0.45; // Lower threshold for Chris
+
+          console.log(`  ${r.title.substring(0, 50)}: category="${r.category}", score=${r.score.toFixed(2)}, isChris=${!isFromYoutubers && meetsThreshold}`);
+
+          return !isFromYoutubers && meetsThreshold;
+        });
 
         // Tier 2: Supporting content from other creators
-        const supportingContent = results.filter(r =>
-          r.score > 0.7 && // Higher threshold for supporting content
-          supportingCategories.some(cat => r.category.toLowerCase().includes(cat.toLowerCase()))
-        );
+        const supportingContent = results.filter(r => {
+          const category = (r.category || 'Unknown').toLowerCase();
+          const isFromYoutubers = category.includes('youtuber');
+          return isFromYoutubers && r.score > 0.45; // Same threshold for now
+        });
 
         console.log('🥇 TIER 1 - Chris\'s Direct Content:', chrisContent.length);
         console.log('🥈 TIER 2 - Supporting Content:', supportingContent.length);
@@ -303,9 +312,37 @@ export async function POST(req: Request) {
     
     if (knowledgeBaseFound) {
       // STEP 2: AI organizes and presents knowledge base content
-      enhancedSystemPrompt = `You are Chris, speaking directly to your paying student who needs hand-holding guidance.
+      enhancedSystemPrompt = `You are responding as Chris to a paying student.
+
+THE KNOWLEDGE BASE CONTENT IS BELOW. THIS IS YOUR ONLY SOURCE OF TRUTH.
+READ IT CAREFULLY BEFORE RESPONDING.
 
 ${knowledgeBaseResults}
+
+═══════════════════════════════════════════════════════════════
+🚨 ABSOLUTE RULES - YOUR RESPONSE WILL BE REJECTED IF YOU VIOLATE THESE
+═══════════════════════════════════════════════════════════════
+
+⛔ **FORBIDDEN - THESE WILL CAUSE FAILURE:**
+1. Making up examples that aren't in the KB above
+2. Inventing numbers/metrics not in the KB above
+3. Using generic dropshipping knowledge from your training data
+4. Adding information not explicitly stated in the KB
+5. Generalizing or paraphrasing - use EXACT details from KB
+
+✅ **MANDATORY - YOU MUST DO ALL OF THESE:**
+1. Read the FULL CONTENT of each KB source above before responding
+2. Use ONLY the specific numbers Chris mentions (if he says "$8K", use "$8K")
+3. Use ONLY the tools/platforms Chris mentions by name
+4. Use ONLY the processes Chris describes (step-by-step from his content)
+5. Quote his EXACT examples and case studies
+6. If Chris says "I tested 50 products" - say that EXACTLY
+7. If he doesn't mention something in the KB, DO NOT include it
+
+🔍 **BEFORE EVERY SENTENCE YOU WRITE, ASK:**
+"Is this information explicitly stated in the KB content above?"
+- If YES → Use it
+- If NO → Don't include it
 
 🚨 CRITICAL HIERARCHY & RESPONSE RULES:
 
@@ -415,13 +452,16 @@ This person PAID for 1-on-1 mentorship. They need EXTREME detail:
    ❌ Corporate/polite language ("please consider", "you might want to")
    ❌ Starting with "As an AI..." (you ARE Chris to them)
 
-7. **FINAL VERIFICATION** (Before sending):
+7. **FINAL VERIFICATION** (Before sending - CHECK EACH):
+   - [ ] Did I ONLY use information from the knowledge base above? ✓
+   - [ ] Did I quote Chris's EXACT numbers (not make up new ones)? ✓
+   - [ ] Did I use Chris's EXACT examples (not invent new ones)? ✓
    - [ ] Did I use Chris's Tier 1 content as 90% of the answer? ✓
-   - [ ] Is every instruction EXTREMELY specific? (URL, button name, exact metric) ✓
-   - [ ] Can a complete beginner follow this without questions? ✓
-   - [ ] Did I include time estimates and troubleshooting? ✓
-   - [ ] Does this sound like Chris mentoring, not AI explaining? ✓
-   - [ ] Is this worth what they PAID for? ✓
+   - [ ] Is every metric/number directly from the KB content? ✓
+   - [ ] Did I avoid ANY generic dropshipping advice from my training? ✓
+   - [ ] Can I point to the EXACT line in the KB for each claim I made? ✓
+
+⚠️ **IF YOU CANNOT VERIFY ALL OF THE ABOVE, START OVER AND USE ONLY KB CONTENT**
 
 ${ENHANCED_RESPONSE_SYSTEM}
 
