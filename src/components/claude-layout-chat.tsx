@@ -987,65 +987,8 @@ export default function ClaudeLayoutChat() {
             </motion.button>
           </div>
 
-          {/* Right Side - Agent Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center space-x-2 px-3 py-2 bg-custom-dark-secondary rounded-lg hover:bg-custom-dark-tertiary transition-all duration-200"
-            >
-              <span className="text-sm font-medium text-text">
-                {currentAgent.name}
-              </span>
-              <motion.svg
-                className="w-4 h-4 text-text-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                animate={{ rotate: isDropdownOpen ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </motion.svg>
-            </motion.button>
-
-            {/* Dropdown Menu */}
-            <AnimatePresence>
-              {isDropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute right-0 mt-2 w-48 bg-custom-dark-secondary border border-border rounded-lg shadow-lg z-50"
-                >
-                  <div className="p-1">
-                    {Object.values(AGENTS).map((agent) => (
-                      <motion.button
-                        key={agent.id}
-                        whileHover={{ x: 4 }}
-                        onClick={() => handleAgentChange(agent.id)}
-                        className={`w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-all duration-200 ${
-                          selectedAgent === agent.id 
-                            ? 'bg-custom-dark-tertiary' 
-                            : 'hover:bg-custom-dark-tertiary'
-                        }`}
-                      >
-                        <div 
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-sm"
-                          style={{ backgroundColor: `${agent.color}20` }}
-                        >
-                          {agent.icon}
-                        </div>
-                        <span className="text-sm font-medium text-text">{agent.name}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Right Side - Empty space for now, agents configured in sidebar */}
+          <div className="w-10"></div>
         </header>
 
         {/* Chat Messages Area */}
