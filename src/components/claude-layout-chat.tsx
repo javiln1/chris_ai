@@ -46,6 +46,7 @@ export default function ClaudeLayoutChat() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState('chatgpt4');
+  const [isInitialized, setIsInitialized] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
@@ -85,6 +86,81 @@ export default function ClaudeLayoutChat() {
   const [messages, setMessages] = useState<Message[]>([]);
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
+
+  // Load sessions from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedSessions = localStorage.getItem('chat-sessions');
+        const savedCurrentSessionId = localStorage.getItem('current-session-id');
+        const savedStarredSessions = localStorage.getItem('starred-sessions');
+
+        if (savedSessions) {
+          const parsedSessions = JSON.parse(savedSessions);
+          // Convert date strings back to Date objects
+          const sessionsWithDates = parsedSessions.map((s: any) => ({
+            ...s,
+            createdAt: new Date(s.createdAt),
+            updatedAt: new Date(s.updatedAt),
+            messages: s.messages.map((m: any) => ({
+              ...m,
+              timestamp: new Date(m.timestamp)
+            }))
+          }));
+          setSessions(sessionsWithDates);
+        }
+
+        if (savedCurrentSessionId) {
+          setCurrentSessionId(savedCurrentSessionId);
+        }
+
+        if (savedStarredSessions) {
+          setStarredSessions(JSON.parse(savedStarredSessions));
+        }
+      } catch (error) {
+        console.error('Error loading sessions from localStorage:', error);
+      } finally {
+        setIsInitialized(true);
+      }
+    }
+  }, []);
+
+  // Save sessions to localStorage whenever they change
+  useEffect(() => {
+    if (isInitialized && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('chat-sessions', JSON.stringify(sessions));
+      } catch (error) {
+        console.error('Error saving sessions to localStorage:', error);
+      }
+    }
+  }, [sessions, isInitialized]);
+
+  // Save current session ID to localStorage
+  useEffect(() => {
+    if (isInitialized && typeof window !== 'undefined') {
+      try {
+        if (currentSessionId) {
+          localStorage.setItem('current-session-id', currentSessionId);
+        } else {
+          localStorage.removeItem('current-session-id');
+        }
+      } catch (error) {
+        console.error('Error saving current session ID:', error);
+      }
+    }
+  }, [currentSessionId, isInitialized]);
+
+  // Save starred sessions to localStorage
+  useEffect(() => {
+    if (isInitialized && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('starred-sessions', JSON.stringify(starredSessions));
+      } catch (error) {
+        console.error('Error saving starred sessions:', error);
+      }
+    }
+  }, [starredSessions, isInitialized]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -216,8 +292,11 @@ export default function ClaudeLayoutChat() {
     ));
   };
 
-  const handleSendMessage = async (message: string) => {
+  const handleSendMessage = async (message: string, retryCount = 0) => {
     if (!message.trim()) return;
+
+    // Prevent duplicate submissions
+    if (isLoading) return;
 
     // Hide welcome state and start chat
     setShowWelcome(false);
@@ -255,7 +334,10 @@ export default function ClaudeLayoutChat() {
     }
 
     try {
-      // Call the AI API
+      // Call the AI API with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -268,9 +350,18 @@ export default function ClaudeLayoutChat() {
           })),
           agentId: selectedAgent,
         }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
+        // Retry on 5xx errors
+        if (response.status >= 500 && retryCount < 2) {
+          console.log(`Server error, retrying... (attempt ${retryCount + 1}/2)`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          return handleSendMessage(message, retryCount + 1);
+        }
         throw new Error(`API error: ${response.status}`);
       }
 
@@ -316,19 +407,38 @@ export default function ClaudeLayoutChat() {
 
     } catch (error) {
       console.error('Chat error:', error);
-      
+
+      // Retry on timeout or network errors
+      if ((error instanceof Error && error.name === 'AbortError') ||
+          (error instanceof TypeError && error.message.includes('fetch'))) {
+        if (retryCount < 2) {
+          console.log(`Request failed, retrying... (attempt ${retryCount + 1}/2)`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+          return handleSendMessage(message, retryCount + 1);
+        }
+      }
+
       // Show error message
+      let errorMsg = 'Unknown error';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMsg = 'Request timed out. Please try again.';
+        } else {
+          errorMsg = error.message;
+        }
+      }
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your API key configuration.`,
+        content: `Sorry, I encountered an error: ${errorMsg}. ${retryCount > 0 ? 'Retry attempts exhausted.' : 'Please try again.'}`,
         agentId: selectedAgent,
         timestamp: new Date(),
       };
-      
+
       const finalMessages = [...newMessages, errorMessage];
       setMessages(finalMessages);
-      
+
       if (currentSessionId) {
         updateSession(currentSessionId, finalMessages);
       }

@@ -5,6 +5,94 @@ import OpenAI from 'openai';
 let pc: Pinecone | null = null;
 let openai: OpenAI | null = null;
 
+// Simple in-memory cache with TTL
+interface CacheEntry {
+  data: SearchResult[];
+  timestamp: number;
+}
+
+const searchCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(query: string, category?: string, limit?: number): string {
+  return `${query}:${category || 'all'}:${limit || 5}`;
+}
+
+function getFromCache(key: string): SearchResult[] | null {
+  const entry = searchCache.get(key);
+  if (!entry) return null;
+
+  // Check if cache entry is still valid
+  if (Date.now() - entry.timestamp > CACHE_TTL) {
+    searchCache.delete(key);
+    return null;
+  }
+
+  return entry.data;
+}
+
+function setCache(key: string, data: SearchResult[]): void {
+  searchCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+
+  // Clean up old entries periodically
+  if (searchCache.size > 100) {
+    const now = Date.now();
+    for (const [key, entry] of searchCache.entries()) {
+      if (now - entry.timestamp > CACHE_TTL) {
+        searchCache.delete(key);
+      }
+    }
+  }
+}
+
+// Enhance query to improve semantic search results
+function enhanceQueryForSearch(query: string): string {
+  const lowerQuery = query.toLowerCase();
+
+  // Add dropshipping context if not present
+  const dropshippingTerms = ['dropshipping', 'ecommerce', 'shopify', 'product', 'store'];
+  const hasDropshippingContext = dropshippingTerms.some(term => lowerQuery.includes(term));
+
+  // Common query patterns and their enhancements
+  const enhancements: Record<string, string> = {
+    'how to find': 'product research strategy method finding',
+    'how do i': 'strategy method process steps',
+    'what is': 'explanation definition strategy',
+    'best way': 'optimal strategy proven method',
+    'should i': 'recommendation advice strategy decision',
+    'can i': 'method approach strategy',
+    'viral': 'viral content organic tiktok instagram facebook engagement',
+    'product': 'product research winning products criteria',
+    'marketing': 'marketing strategy organic content viral',
+    'ads': 'advertising paid ads facebook tiktok instagram',
+    'profit': 'revenue profit margin pricing markup',
+    'supplier': 'supplier aliexpress cjdropshipping shipping',
+    'shipping': 'shipping delivery times fulfillment',
+    'case study': 'case study example revenue results success',
+  };
+
+  // Build enhanced query
+  let enhanced = query;
+
+  // Add contextual keywords
+  for (const [pattern, enhancement] of Object.entries(enhancements)) {
+    if (lowerQuery.includes(pattern)) {
+      enhanced += ` ${enhancement}`;
+      break; // Only add one enhancement
+    }
+  }
+
+  // Add organic dropshipping context if missing
+  if (!hasDropshippingContext) {
+    enhanced += ' organic dropshipping ecommerce';
+  }
+
+  return enhanced;
+}
+
 function getPineconeClient() {
   if (!pc) {
     if (!process.env.PINECONE_API_KEY) {
@@ -44,17 +132,31 @@ export async function searchKnowledgeBase(
   limit: number = 5
 ): Promise<SearchResult[]> {
   try {
+    // Check cache first
+    const cacheKey = getCacheKey(query, category, limit);
+    const cachedResults = getFromCache(cacheKey);
+    if (cachedResults) {
+      console.log('📦 Cache hit for query:', query);
+      return cachedResults;
+    }
+
+    console.log('🔍 Cache miss, searching knowledge base...');
+
     // Get the clients
     const pcClient = getPineconeClient();
     const openaiClient = getOpenAIClient();
-    
+
     // Get the index
     const index = pcClient.index('gpc-knowledge-base');
 
-    // Create embedding for the query
+    // Enhance query for better semantic search
+    const enhancedQuery = enhanceQueryForSearch(query);
+    console.log('🔧 Enhanced query:', enhancedQuery);
+
+    // Create embedding for the enhanced query
     const embeddingResponse = await openaiClient.embeddings.create({
       model: 'text-embedding-3-small',
-      input: query,
+      input: enhancedQuery,
     });
 
     const queryEmbedding = embeddingResponse.data[0].embedding;
@@ -79,6 +181,9 @@ export async function searchKnowledgeBase(
       video_url: match.metadata?.video_url as string,
       score: match.score || 0,
     })) || [];
+
+    // Cache the results
+    setCache(cacheKey, results);
 
     return results;
   } catch (error) {
