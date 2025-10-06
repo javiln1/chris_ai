@@ -72,13 +72,15 @@ export default function ClaudeLayoutChat() {
   const [showSettingsPage, setShowSettingsPage] = useState(false);
   const [showProfilePage, setShowProfilePage] = useState(false);
   const [showHelpSupportPage, setShowHelpSupportPage] = useState(false);
-  
+  const [isDragging, setIsDragging] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
   const connectorsMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatAreaRef = useRef<HTMLDivElement>(null);
 
   const currentAgent = getAgentById(selectedAgent);
 
@@ -482,6 +484,38 @@ export default function ClaudeLayoutChat() {
     });
   };
 
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if leaving the main chat area
+    if (e.currentTarget === chatAreaRef.current) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files);
+    }
+  };
+
   const handleFileMenuAction = (action: string) => {
     setIsFileMenuOpen(false);
     
@@ -628,11 +662,40 @@ export default function ClaudeLayoutChat() {
   };
 
   const toggleStarSession = (sessionId: string) => {
-    setStarredSessions(prev => 
-      prev.includes(sessionId) 
+    setStarredSessions(prev =>
+      prev.includes(sessionId)
         ? prev.filter(id => id !== sessionId)
         : [...prev, sessionId]
     );
+  };
+
+  const downloadConversation = () => {
+    if (!currentSession || messages.length === 0) return;
+
+    const conversationText = messages.map(msg =>
+      `${msg.role.toUpperCase()}: ${msg.content}\n`
+    ).join('\n---\n\n');
+
+    const blob = new Blob([conversationText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conversation-${currentSession.id}-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const clearCurrentConversation = () => {
+    if (!currentSessionId) return;
+
+    const confirmed = confirm('Clear this conversation? This cannot be undone.');
+    if (confirmed) {
+      setMessages([]);
+      updateSession(currentSessionId, []);
+      setShowWelcome(true);
+    }
   };
 
   const navigateToAgentsPage = () => {
@@ -934,7 +997,40 @@ export default function ClaudeLayoutChat() {
       </motion.div>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 w-full">
+      <main
+        ref={chatAreaRef}
+        className="flex-1 flex flex-col min-w-0 w-full relative"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {/* Drag & Drop Overlay */}
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-custom-dark/95 backdrop-blur-sm flex items-center justify-center"
+            >
+              <div className="text-center">
+                <motion.div
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  className="w-32 h-32 mx-auto mb-4 rounded-full border-4 border-dashed border-lime-500 flex items-center justify-center"
+                >
+                  <svg className="w-16 h-16 text-lime-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </motion.div>
+                <h3 className="text-2xl font-semibold text-text mb-2">Drop files here</h3>
+                <p className="text-text-secondary">Upload images, videos, PDFs, and more</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Header */}
         <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-custom-dark">
           {/* Left Side - Hamburger Menu and Logo */}
@@ -987,8 +1083,38 @@ export default function ClaudeLayoutChat() {
             </motion.button>
           </div>
 
-          {/* Right Side - Empty space for now, agents configured in sidebar */}
-          <div className="w-10"></div>
+          {/* Right Side - Quick Actions */}
+          <div className="flex items-center space-x-2">
+            {/* Download Conversation */}
+            {messages.length > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={downloadConversation}
+                title="Download conversation"
+                className="p-2 hover:bg-custom-dark-tertiary rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </motion.button>
+            )}
+
+            {/* Clear Conversation */}
+            {messages.length > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={clearCurrentConversation}
+                title="Clear conversation"
+                className="p-2 hover:bg-custom-dark-tertiary rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </motion.button>
+            )}
+          </div>
         </header>
 
         {/* Chat Messages Area */}
