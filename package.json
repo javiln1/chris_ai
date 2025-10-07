@@ -12,6 +12,7 @@
     "@ai-sdk/anthropic": "^2.0.17",
     "@ai-sdk/google": "^2.0.15",
     "@ai-sdk/openai": "^2.0.0",
+    "@clerk/nextjs": "^6.33.3",
     "@heroicons/react": "^2.2.0",
     "@pinecone-database/pinecone": "^6.1.2",
     "@radix-ui/react-avatar": "^1.1.10",
