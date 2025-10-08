@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from '@clerk/nextjs';
+import { dark } from '@clerk/themes';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,20 +27,28 @@ export default function RootLayout({
   return (
     <ClerkProvider
       appearance={{
+        baseTheme: dark,
         variables: {
+          // Brand colors - Green accent theme
           colorPrimary: '#00ff00',
+          colorSuccess: '#00ff00',
+
+          // Dark backgrounds matching your app
           colorBackground: '#191919',
           colorInputBackground: '#1F1F1F',
-          colorInputText: '#EAEAEA',
+
+          // Text colors
           colorText: '#EAEAEA',
           colorTextSecondary: '#B3B3B3',
-          colorTextOnPrimaryBackground: '#191919',
+          colorTextOnPrimaryBackground: '#191919', // Dark text on green buttons
+
+          // Alerts
           colorDanger: '#ff4444',
-          colorSuccess: '#00ff00',
           colorWarning: '#ffaa00',
+
+          // Styling
           borderRadius: '0.5rem',
           fontFamily: 'Inter, system-ui, sans-serif',
-          colorAlphaShade: '#191919',
         },
       }}
     >
