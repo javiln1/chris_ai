@@ -19,8 +19,8 @@ load_dotenv()
 pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
 openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-# Connect to Pinecone index
-index = pc.Index('gpc-knowledge-base')
+# Connect to Pinecone index (NEW FRESH INDEX)
+index = pc.Index('gpc-knowledge-base-v2')
 
 def extract_document_content(url):
     """Extract content from Google Docs URL"""

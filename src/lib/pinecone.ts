@@ -146,8 +146,8 @@ export async function searchKnowledgeBase(
     const pcClient = getPineconeClient();
     const openaiClient = getOpenAIClient();
 
-    // Get the index
-    const index = pcClient.index('gpc-knowledge-base');
+    // Get the index (FRESH INDEX - v2 with clean data)
+    const index = pcClient.index('gpc-knowledge-base-v2');
 
     // Enhance query for better semantic search
     const enhancedQuery = enhanceQueryForSearch(query);
