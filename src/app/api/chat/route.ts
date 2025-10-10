@@ -290,21 +290,31 @@ export async function POST(req: Request) {
 
           console.log(`✅ Hierarchical KB results: ${chrisContent.length} from Chris (TIER 1), ${supportingContent.length} supporting (TIER 2)`);
         } else if (results.length > 0) {
-          // Fallback: Some results but didn't meet thresholds
-          knowledgeBaseFound = true;
-          knowledgeBaseSources = results.slice(0, 5);
+          // Check if ANY results have content
+          const resultsWithContent = results.filter(r => r.content && r.content.length > 100);
 
-          knowledgeBaseResults = `\n\n=== RELATED CONTENT (Lower Confidence) ===\n`;
-          knowledgeBaseResults += `Query: "${latestMessage.content}"\n\n`;
+          if (resultsWithContent.length > 0) {
+            // Fallback: Some results with content but didn't meet category thresholds
+            knowledgeBaseFound = true;
+            knowledgeBaseSources = resultsWithContent.slice(0, 5);
 
-          results.slice(0, 5).forEach((result, index) => {
-            knowledgeBaseResults += `SOURCE ${index + 1}: ${result.title}\n`;
-            knowledgeBaseResults += `Score: ${Math.round(result.score * 100)}% | ${result.category}\n\n`;
-            knowledgeBaseResults += `${result.content}\n\n`;
-            knowledgeBaseResults += `${'─'.repeat(80)}\n\n`;
-          });
+            knowledgeBaseResults = `\n\n=== RELATED CONTENT (Lower Confidence) ===\n`;
+            knowledgeBaseResults += `Query: "${latestMessage.content}"\n\n`;
 
-          console.log('⚠️ Lower confidence results used');
+            resultsWithContent.slice(0, 5).forEach((result, index) => {
+              knowledgeBaseResults += `SOURCE ${index + 1}: ${result.title}\n`;
+              knowledgeBaseResults += `Score: ${Math.round(result.score * 100)}% | ${result.category}\n\n`;
+              knowledgeBaseResults += `${result.content}\n\n`;
+              knowledgeBaseResults += `${'─'.repeat(80)}\n\n`;
+            });
+
+            console.log('⚠️ Lower confidence results used (with content)');
+          } else {
+            // Results found but ALL have empty content - treat as NO KNOWLEDGE BASE
+            console.log('❌ Results found but ALL have empty content (0 chars)');
+            console.log('❌ Treating as NO KNOWLEDGE BASE - will tell user honestly');
+            knowledgeBaseFound = false;
+          }
         } else {
           console.log('❌ No knowledge base results found');
         }
@@ -532,38 +542,41 @@ NOW RESPOND USING ONLY THE KNOWLEDGE BASE CONTENT WITH CHRIS'S EXACT TONE AND ST
 
 ${ENHANCED_RESPONSE_SYSTEM}
 
-NO KNOWLEDGE BASE FOUND INSTRUCTIONS:
-1. Acknowledge this specific topic isn't in Chris's knowledge base
-2. Provide general but STILL DETAILED step-by-step guidance
-3. Use the same depth and structure requirements
-4. Suggest asking about topics Chris has covered for best results
-5. Still provide actionable, specific instructions
+🚨 CRITICAL: NO KNOWLEDGE BASE CONTENT AVAILABLE
 
-Even without Chris's specific content, maintain the same level of detail and actionability.
+THE KNOWLEDGE BASE RETURNED NO USABLE CONTENT FOR THIS QUESTION.
+DO NOT MAKE UP AN ANSWER. DO NOT USE GENERIC KNOWLEDGE.
 
-FALLBACK RESPONSE STRUCTURE:
-## ⚠️ Topic Not in Chris's Knowledge Base
+REQUIRED RESPONSE (USE EXACTLY THIS STRUCTURE):
 
-> **Important:** This specific topic isn't covered in Chris's proven strategies. The guidance below is from general research and may not reflect Chris's specific methods.
+## ❌ Sorry - I Don't Have Chris's Content For This
 
-### 🎯 What You Can Do Right Now
-[Provide actionable steps even without Chris's specific guidance]
+Yo, I gotta be real with you - **I don't have Chris's actual teaching on this topic in my knowledge base right now.**
 
-### 📚 Related Topics in Chris's Knowledge Base
-**Ask about these proven strategies instead:**
-- [Topic 1 from KB] - Chris's proven method
-- [Topic 2 from KB] - Chris's proven method
-- [Topic 3 from KB] - Chris's proven method
+The knowledge base search found some results, but they're all empty (no actual content stored). So I literally can't give you Chris's proven methods on this.
 
-### 💡 General Guidance (Not Chris's Method)
-[Provide helpful but clearly marked as general research]
+### 🔧 What's Going On?
 
-### 🚀 Recommended Next Steps
-1. **Try the related topics above** - These have Chris's proven strategies
-2. **Ask more specific questions** about Chris's methods
-3. **Focus on Chris's proven areas** for guaranteed results
+The knowledge base has some technical issues with certain topics not having their content properly stored. This is being fixed, but right now I can't access Chris's real strategies for your question.
 
-> 🔥 **Chris's Success Formula:** Focus on proven strategies from his knowledge base for the best results!`;
+### ✅ What DOES Work?
+
+Ask me about topics that ARE in the knowledge base:
+- **Product research strategies** (Course Content - 100% working)
+- **Chris's coaching advice** (Coaching Calls - 100% working)
+- **Store setup and optimization**
+- **Content creation strategies**
+- **Scaling methods**
+
+### 🎯 What You Should Do
+
+1. **Rephrase your question** - Try asking in a different way
+2. **Ask about related topics** - Like "How does Chris approach product research?" instead of specific tools
+3. **Try the working categories** - Coaching Calls and Course Content are fully loaded
+
+**I'm not gonna bullshit you with made-up answers.** Ask about the topics above where I actually have Chris's real content, and you'll get the real sauce.
+
+> ⚠️ **IMPORTANT:** Do NOT provide generic advice. Do NOT make up content. Be 100% honest that the knowledge base doesn't have this information.`;
     }
 
     let result;
