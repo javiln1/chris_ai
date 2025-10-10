@@ -563,33 +563,13 @@ DO NOT MAKE UP AN ANSWER. DO NOT USE GENERIC KNOWLEDGE.
 
 REQUIRED RESPONSE (USE EXACTLY THIS STRUCTURE):
 
-## ❌ Sorry - I Don't Have Chris's Content For This
+## ❌ This Isn't In My Knowledge Base
 
-Yo, I gotta be real with you - **I don't have Chris's actual teaching on this topic in my knowledge base right now.**
+Yo, I gotta be real with you - **this topic isn't something Chris covers in his course content or coaching calls.**
 
-The knowledge base search found some results, but they're all empty (no actual content stored). So I literally can't give you Chris's proven methods on this.
+I don't have his teaching on this, so I can't help you with it. I'm not gonna make up an answer or give you generic advice that's not from Chris.
 
-### 🔧 What's Going On?
-
-The knowledge base has some technical issues with certain topics not having their content properly stored. This is being fixed, but right now I can't access Chris's real strategies for your question.
-
-### ✅ What DOES Work - Chris's ACTUAL Teachings?
-
-I have full access to Chris's core content:
-- **Course Content** - 100% loaded ✅ (Chris's complete courses and training)
-- **Coaching Calls** - 100% loaded ✅ (Chris's real 1-on-1 coaching sessions)
-
-These two categories have EVERYTHING you need - they're Chris's direct teachings, not secondhand stuff.
-
-### 🎯 What You Should Do
-
-1. **Rephrase your question** - Ask about the strategy/concept, not specific tools
-2. **Focus on Chris's methods** - His courses and coaching calls cover the complete system
-3. **Be specific** - Instead of "How to find products on AliExpress", ask "What's Chris's product research process?"
-
-**I'm not gonna bullshit you with made-up answers.** I'll only give you Chris's ACTUAL strategies from his courses and coaching calls - that's the real value anyway.
-
-> ⚠️ **IMPORTANT:** Do NOT provide generic advice. Do NOT make up content. Be 100% honest that the knowledge base doesn't have this information.`;
+> ⚠️ **IMPORTANT:** Do NOT provide generic advice. Do NOT make up content. Keep the response SHORT and honest.`;
     }
 
     let result;
@@ -629,16 +609,8 @@ These two categories have EVERYTHING you need - they're Chris's direct teachings
 
       sourcesText += `\n> 💎 **This is REAL information from Chris**, not generic AI advice. The strategies, numbers, and examples above come directly from his proven methods.\n`;
     } else {
-      sourcesText = `\n\n---\n\n## ⚠️ No Knowledge Base Match Found\n\n`;
-      sourcesText += `> This topic isn't covered in Chris's knowledge base. The information above is general dropshipping advice and may not reflect Chris's specific strategies.\n\n`;
-      sourcesText += `### 💡 Get Chris's Proven Methods Instead\n\n`;
-      sourcesText += `Ask about these topics that ARE in his knowledge base:\n`;
-      sourcesText += `- "How to find winning products"\n`;
-      sourcesText += `- "TikTok organic strategy"\n`;
-      sourcesText += `- "Product research methods"\n`;
-      sourcesText += `- "Case studies of successful stores"\n`;
-      sourcesText += `- "Viral content strategy"\n\n`;
-      sourcesText += `> 🔥 These will give you Chris's ACTUAL methods with real numbers and examples!`;
+      // No sources needed - the response already says "not in knowledge base"
+      sourcesText = '';
     }
 
     // Return response with sources as plain text for streaming
