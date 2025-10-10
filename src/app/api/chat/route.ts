@@ -552,17 +552,58 @@ ${ENHANCED_RESPONSE_SYSTEM}
 NOW RESPOND USING ONLY THE KNOWLEDGE BASE CONTENT WITH CHRIS'S EXACT TONE AND STYLE.
 
 ═══════════════════════════════════════════════════════════════
-🎯 FOLLOW-UP SUGGESTIONS (MANDATORY AT END OF RESPONSE)
+🎯 FOLLOW-UP SUGGESTIONS (MANDATORY - CRITICAL INSTRUCTIONS)
 ═══════════════════════════════════════════════════════════════
 
-After your main response and sources section, you MUST add 3-5 contextually relevant follow-up questions.
+After your main response and sources section, you MUST generate 3-5 follow-up questions.
 
-These suggestions should:
-- Build naturally on what you just taught
-- Guide the student to the next logical step in Chris's methodology
-- Reference specific topics from the knowledge base that weren't fully covered
-- Help discover Chris's content they might not know to ask about
-- Be specific and actionable (not vague like "tell me more")
+🚨 CRITICAL RULES FOR GENERATING SUGGESTIONS:
+
+1. **ONLY SUGGEST QUESTIONS YOU CAN ANSWER FROM THE KNOWLEDGE BASE ABOVE**
+   - Review the SOURCE titles you just cited in your response
+   - Look at related topics mentioned in those sources
+   - Check what natural next steps Chris teaches in his methodology
+   - DO NOT suggest questions about topics not in the knowledge base
+
+2. **CONTEXTUAL RELEVANCE (MANDATORY)**
+   - If they asked about "finding products" → suggest questions about validating products, sourcing, or marketing angles
+   - If they asked about "TikTok content" → suggest questions about hooks, engagement, or avoiding burners
+   - If they asked about "going viral" → suggest questions about post-viral strategy, recycling content, or scaling
+   - Build a logical learning path based on Chris's course structure
+
+3. **BE SPECIFIC & REFERENCE REAL CONTENT**
+   - BAD: "Tell me more about products"
+   - GOOD: "What's the difference between good vs bad products according to Chris?"
+   - BAD: "How do I make content?"
+   - GOOD: "Can you break down Chris's viral hooks framework?"
+
+4. **SUGGEST THE NATURAL NEXT STEP**
+   Think: "If a student just learned X, what's the next thing Chris would teach them?"
+
+   Example progression:
+   - Product Research → Product Validation → Sourcing → Creating First Content → Going Viral → Post-Viral Strategy → Scaling
+
+   If they just learned about finding products, suggest:
+   - "How do I validate if a product has viral potential?" (next step)
+   - "What's Chris's A-Z product research guide?" (deeper dive)
+   - "How do I source products on CJ Dropshipping?" (practical next action)
+
+5. **USE KNOWLEDGE BASE SOURCE TITLES**
+   Look at the sources you cited. If you cited:
+   - "Good Vs Bad Products NEU" → suggest "What makes a product good vs bad for organic dropshipping?"
+   - "Viral Hooks NEU" → suggest "How do I create viral hooks for TikTok?"
+   - "IG prime method" → suggest "Can you explain the IG prime method step-by-step?"
+
+6. **AVOID GENERIC OR UNANSWERABLE QUESTIONS**
+   - Don't suggest topics Chris doesn't cover (Facebook ads, Shopify setup, etc.)
+   - Don't suggest "What are your top tips?" (too vague)
+   - Don't suggest "Can you give me examples?" (too generic)
+
+🎯 QUALITY CHECKLIST (ASK YOURSELF BEFORE ADDING EACH SUGGESTION):
+   - [ ] Can I answer this question using the knowledge base content above? ✓
+   - [ ] Does this naturally follow what I just taught? ✓
+   - [ ] Is this specific enough (mentions a method/strategy/framework)? ✓
+   - [ ] Would this help the student progress in Chris's methodology? ✓
 
 Format EXACTLY like this at the very end:
 
@@ -571,11 +612,19 @@ Question 1 here
 Question 2 here
 Question 3 here
 
-Example:
+GOOD Example (if they asked "How do I find winning products?"):
 ---SUGGESTIONS---
-How do I validate if a product has good viral potential?
-What's Chris's process for creating the first content piece?
-Can you break down the GPC TikTok recycle method?`;
+What makes a product good vs bad according to Chris?
+How do I validate if a product has viral potential on TikTok?
+What's Chris's process for sourcing products on CJ Dropshipping?
+Can you show me a case study of someone finding a winning product?
+
+BAD Example (too generic/not in KB):
+---SUGGESTIONS---
+Tell me more about products
+What are the best products to sell?
+How do I set up my Shopify store?
+What's your opinion on this product idea?`;
     } else {
       // STEP 3 & 4: No knowledge base results - research fallback
       enhancedSystemPrompt = `${agent.systemPrompt}
