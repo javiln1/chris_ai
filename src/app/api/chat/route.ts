@@ -290,8 +290,13 @@ export async function POST(req: Request) {
 
           console.log(`✅ Hierarchical KB results: ${chrisContent.length} from Chris (TIER 1), ${supportingContent.length} supporting (TIER 2)`);
         } else if (results.length > 0) {
-          // Check if ANY results have content
-          const resultsWithContent = results.filter(r => r.content && r.content.length > 100);
+          // Check if ANY results have content AND meet minimum relevance threshold
+          const MINIMUM_RELEVANCE = 0.60; // 60% minimum - anything lower is not relevant enough
+          const resultsWithContent = results.filter(r =>
+            r.content &&
+            r.content.length > 100 &&
+            r.score >= MINIMUM_RELEVANCE
+          );
 
           if (resultsWithContent.length > 0) {
             // Fallback: Some results with content but didn't meet category thresholds
@@ -330,8 +335,16 @@ export async function POST(req: Request) {
       // STEP 2: AI organizes and presents knowledge base content
       enhancedSystemPrompt = `You are responding as Chris to a paying student.
 
+🚨 CRITICAL RULE: ONLY USE THE KNOWLEDGE BASE CONTENT BELOW 🚨
+
 THE KNOWLEDGE BASE CONTENT IS BELOW. THIS IS YOUR ONLY SOURCE OF TRUTH.
 READ IT CAREFULLY BEFORE RESPONDING.
+
+⚠️ IF THE CONTENT BELOW DOES NOT DIRECTLY ANSWER THE USER'S QUESTION:
+   - DO NOT make up information
+   - DO NOT use generic knowledge
+   - DO NOT fabricate examples or step-by-step guides
+   - TELL THE USER HONESTLY: "I don't have Chris's specific content on this"
 
 ${knowledgeBaseResults}
 
