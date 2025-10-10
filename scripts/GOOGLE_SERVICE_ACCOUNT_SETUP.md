@@ -1,4 +1,4 @@
-# Google Service Account Setup Guide
+x# Google Service Account Setup Guide
 
 This will let the scripts access your private Google Docs without making them public.
 
@@ -9,7 +9,6 @@ This will let the scripts access your private Google Docs without making them pu
 1. **Go to Google Cloud Console**
    - Visit: https://console.cloud.google.com/
    - Sign in with your Google account
-
 2. **Create a New Project**
    - Click the project dropdown (top left, next to "Google Cloud")
    - Click "NEW PROJECT"

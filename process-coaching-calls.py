@@ -77,13 +77,15 @@ def store_in_pinecone(title, content, video_url, category="Coaching Calls"):
         # Prepare metadata
         metadata = {
             'title': title,
+            'content': content,  # ← ADD THE ACTUAL CONTENT!
             'category': category,
             'source_type': 'doc',
             'language': 'english',
             'status': 'active',
             'content_length': len(content),
             'video_url': video_url,
-            'has_video': bool(video_url and 'loom.com' in video_url)
+            'has_video': bool(video_url and 'loom.com' in video_url),
+            'creator': 'Chris'  # Mark as Chris's content
         }
         
         # Store in Pinecone
