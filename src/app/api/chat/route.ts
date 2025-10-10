@@ -203,12 +203,15 @@ export async function POST(req: Request) {
 
     if (latestMessage && latestMessage.role === 'user') {
       console.log('🔍 STEP 1: Searching knowledge base first for:', latestMessage.content);
+      console.log('🔑 PINECONE_API_KEY exists:', !!process.env.PINECONE_API_KEY);
+      console.log('🔑 PINECONE_API_KEY length:', process.env.PINECONE_API_KEY?.length || 0);
 
       try {
         const { searchKnowledgeBase } = await import('@/lib/pinecone');
         // Search with more results for hierarchical filtering
         const results = await searchKnowledgeBase(latestMessage.content, undefined, 15);
         console.log('📊 Knowledge base search results:', results.length);
+        console.log('📊 Results have content:', results.filter(r => r.content && r.content.length > 100).length);
 
         // HIERARCHY SYSTEM: Separate Chris's direct content from supporting sources
 
