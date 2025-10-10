@@ -7,7 +7,7 @@ const pc = new Pinecone({
 async function analyzeContent() {
   console.log('🔍 Analyzing Pinecone content...\n');
 
-  const index = pc.index('gpc-knowledge-base');
+  const index = pc.index('gpc-knowledge-base-v2');
 
   // Get index stats
   const stats = await index.describeIndexStats();
