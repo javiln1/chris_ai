@@ -15,6 +15,7 @@ import HelpSupportPage from './help-support-page';
 import ToggleSwitch from './toggle-switch';
 import ConnectorsModal from './connectors-modal';
 import FormattedMessage from './FormattedMessage';
+import SuggestedPrompts from './SuggestedPrompts';
 
 interface Message {
   id: string;
@@ -23,6 +24,7 @@ interface Message {
   agentId: string;
   timestamp: Date;
   files?: UploadedFile[];
+  suggestions?: string[];
 }
 
 interface UploadedFile {
@@ -369,44 +371,26 @@ export default function ClaudeLayoutChat() {
         throw new Error(`API error: ${response.status}`);
       }
 
-      // Handle streaming response
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
+      // Handle JSON response with suggestions
+      const responseData = await response.json();
+      const { response: aiResponse, suggestions } = responseData;
 
-      let aiResponse = '';
+      console.log('📥 Received response with suggestions:', suggestions); // Debug log
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: '',
+        content: aiResponse,
         agentId: selectedAgent,
         timestamp: new Date(),
+        suggestions: suggestions || [],
       };
 
       const finalMessages = [...newMessages, aiMessage];
       setMessages(finalMessages);
 
-      // Read the stream
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = new TextDecoder().decode(value);
-        console.log('Stream chunk:', chunk); // Debug log
-        
-        // AI SDK v5 returns plain text chunks, not formatted lines
-        // Each chunk is a piece of the response
-        aiResponse += chunk;
-        
-        // Update the message with streaming content
-        const updatedMessage = { ...aiMessage, content: aiResponse };
-        const updatedMessages = [...newMessages, updatedMessage];
-        setMessages(updatedMessages);
-        
-        if (currentSessionId) {
-          updateSession(currentSessionId, updatedMessages);
-        }
+      if (currentSessionId) {
+        updateSession(currentSessionId, finalMessages);
       }
 
     } catch (error) {
@@ -1485,10 +1469,16 @@ export default function ClaudeLayoutChat() {
                             ))}
                           </div>
                         )}
-                        <FormattedMessage 
-                          role={message.role} 
-                          content={message.content} 
+                        <FormattedMessage
+                          role={message.role}
+                          content={message.content}
                         />
+                        {message.role === 'assistant' && message.suggestions && index === messages.length - 1 && (
+                          <SuggestedPrompts
+                            suggestions={message.suggestions}
+                            onSelect={(suggestion) => setInput(suggestion)}
+                          />
+                        )}
                       </div>
                     </motion.div>
                   ))}

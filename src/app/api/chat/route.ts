@@ -549,7 +549,33 @@ This person PAID for 1-on-1 mentorship. They need EXTREME detail:
 
 ${ENHANCED_RESPONSE_SYSTEM}
 
-NOW RESPOND USING ONLY THE KNOWLEDGE BASE CONTENT WITH CHRIS'S EXACT TONE AND STYLE.`;
+NOW RESPOND USING ONLY THE KNOWLEDGE BASE CONTENT WITH CHRIS'S EXACT TONE AND STYLE.
+
+═══════════════════════════════════════════════════════════════
+🎯 FOLLOW-UP SUGGESTIONS (MANDATORY AT END OF RESPONSE)
+═══════════════════════════════════════════════════════════════
+
+After your main response and sources section, you MUST add 3-5 contextually relevant follow-up questions.
+
+These suggestions should:
+- Build naturally on what you just taught
+- Guide the student to the next logical step in Chris's methodology
+- Reference specific topics from the knowledge base that weren't fully covered
+- Help discover Chris's content they might not know to ask about
+- Be specific and actionable (not vague like "tell me more")
+
+Format EXACTLY like this at the very end:
+
+---SUGGESTIONS---
+Question 1 here
+Question 2 here
+Question 3 here
+
+Example:
+---SUGGESTIONS---
+How do I validate if a product has good viral potential?
+What's Chris's process for creating the first content piece?
+Can you break down the GPC TikTok recycle method?`;
     } else {
       // STEP 3 & 4: No knowledge base results - research fallback
       enhancedSystemPrompt = `${agent.systemPrompt}
@@ -588,6 +614,27 @@ I don't have his teaching on this, so I can't help you with it. I'm not gonna ma
     const fullText = await result.text;
     console.log('📝 Got full text response');
 
+    // Parse out suggestions from the response
+    let mainResponse = fullText;
+    let suggestions: string[] = [];
+
+    const suggestionDelimiter = '---SUGGESTIONS---';
+    if (fullText.includes(suggestionDelimiter)) {
+      const parts = fullText.split(suggestionDelimiter);
+      mainResponse = parts[0].trim();
+
+      if (parts[1]) {
+        // Extract suggestions (each line is a suggestion)
+        suggestions = parts[1]
+          .trim()
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
+        console.log(`🎯 Extracted ${suggestions.length} follow-up suggestions`);
+      }
+    }
+
     // Add simple, user-friendly sources at the end of the response
     let sourcesText = '';
 
@@ -613,13 +660,18 @@ I don't have his teaching on this, so I can't help you with it. I'm not gonna ma
       sourcesText = '';
     }
 
-    // Return response with sources as plain text for streaming
-    const responseWithSources = fullText + sourcesText;
-    console.log('📤 Returning response with sources for streaming');
+    // Return response with sources and suggestions as JSON
+    const responseWithSources = mainResponse + sourcesText;
+    const responseData = {
+      response: responseWithSources,
+      suggestions: suggestions,
+    };
 
-    return new Response(responseWithSources, {
+    console.log('📤 Returning response with sources and suggestions');
+
+    return new Response(JSON.stringify(responseData), {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
       },
